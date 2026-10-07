@@ -60,4 +60,4 @@ MIT licensed. Not affiliated with AYN, Cocoon, emulator authors or game publishe
 
 ## Development workflow
 
-Changes go through pull requests with required `test` and `android` checks. Trusted repository pushes run on the dedicated Atlas self-hosted runner; public fork code does not execute on it. See [CONTRIBUTING.md](CONTRIBUTING.md). No private service configuration is included.
+Changes go through pull requests with required `test` and `android` checks. Trusted repository pushes run on the dedicated self-hosted runner; public fork code does not execute on it. See [CONTRIBUTING.md](CONTRIBUTING.md). No private service configuration is included.

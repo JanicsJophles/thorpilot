@@ -1,11 +1,12 @@
-import { mkdir, readFile, readdir, copyFile, writeFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, readdir, copyFile, writeFile, rm, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { marked } from 'marked';
 
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'artifacts/site');
 const pages = [
-  ['service-integrations', 'Connect your services', 'Brain, personal assistants, libraries, and scoped capabilities.'],
+  ['service-integrations', 'Connect your services', 'Optional assistants, context providers, libraries, and scoped capabilities.'],
   ['copilot-vision', 'The copilot vision', 'Useful help, natural handoffs, and room for play.'],
   ['integration-feasibility', 'Integration evidence', 'What Cocoon, Android, and emulators actually support.'],
   ['cocoon-widget', 'Cocoon widget', 'A lightweight launcher entry point and its validation status.'],
@@ -40,3 +41,15 @@ await writeFile(resolve(out,'robots.txt'),'User-agent: *\nAllow: /\nSitemap: htt
 const urls = ['/','/docs/',...pages.map(([slug])=>`/docs/${slug}.html`)];
 await writeFile(resolve(out,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(path=>`<url><loc>https://thorpilot.rackmind.ai${path}</loc></url>`).join('')}</urlset>`);
 console.log(`Built ${urls.length} pages into artifacts/site`);
+
+// Content-addressed assets prevent a cached stylesheet/script from crossing releases.
+for (const asset of ['style.css', 'site.js', 'mark.svg']) {
+  const digest = createHash('sha256').update(await readFile(resolve(out, asset))).digest('hex').slice(0, 12);
+  const dot = asset.lastIndexOf('.');
+  const versioned = `${asset.slice(0,dot)}.${digest}${asset.slice(dot)}`;
+  await rename(resolve(out, asset), resolve(out, versioned));
+  for (const page of ['index.html', 'docs/index.html', ...pages.map(([slug]) => `docs/${slug}.html`)]) {
+    const path = resolve(out, page);
+    await writeFile(path, (await readFile(path, 'utf8')).replaceAll(`/${asset}`, `/${versioned}`));
+  }
+}
