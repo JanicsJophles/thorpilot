@@ -7,3 +7,5 @@ Palette: mist #e9edf5, slate #25324c, paper #f9fbff, iris #7266bd, soft violet #
 The top display carries a spacious library/task workspace. The lower display carries the conversation, contextual actions and a reachable composer. The browser preview presents them side by side on desktop and vertically on smaller screens. Native layouts must respect actual display bounds, insets and controller focus.
 
 Use one small star motif, gentle surfaces and quiet motion. No game artwork or branding is bundled. Clear progress and honest uncertainty outrank decoration. Keyboard focus, reduced-motion settings, readable text and mobile layouts are part of the baseline.
+
+The next design pass explores a compact **summon → ask/act → dismiss** interaction. See [Summoning the copilot](copilot-summon.md) for display ownership, motion constraints, Android feasibility, and the distinction between a visual concept and shipped functionality.

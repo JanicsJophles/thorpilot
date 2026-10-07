@@ -260,9 +260,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     private fun go(destination: String) {
         if (page == destination) return
+        PilotMotion.reset(body)
         page = destination
         render()
         pageScroll.scrollTo(0, 0)
+        PilotMotion.enter(body)
         showCompanion()
     }
     private fun render() {
