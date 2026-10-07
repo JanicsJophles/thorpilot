@@ -31,6 +31,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var gameCare: GameCarePanel
     private lateinit var configSnapshots: ConfigSnapshotPanel
     private lateinit var edenInspector: EdenInspectorPanel
+    private lateinit var romSync: RomSyncPanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -52,6 +53,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         gameCare = GameCarePanel(this).apply { restoreState(state?.getBundle("game-care")) }
         configSnapshots = ConfigSnapshotPanel(this) { pickConfiguration() }
         edenInspector = EdenInspectorPanel(this) { global -> pickEdenConfig(global) }
+        romSync = RomSyncPanel(this) { destination -> pickRomFolder(destination) }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
@@ -59,6 +61,16 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requestText = if (state?.getString("request-identity") == store.identity)
             state.getString("requests") ?: initialRequests else initialRequests
         render()
+    }
+    private fun pickRomFolder(destination: Boolean) {
+        val request = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        }
+        try { startActivityForResult(request, if (destination) 4111 else 4110) }
+        catch (_: RuntimeException) { Toast.makeText(this, "Could not open the folder picker.", Toast.LENGTH_LONG).show() }
     }
     private fun pickEdenConfig(global: Boolean) {
         val request = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -82,6 +94,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode in 4110..4111 && resultCode == RESULT_OK) {
+            val selected = data?.data ?: return
+            go("library-sync")
+            romSync.accept(selected, requestCode == 4111, data.flags)
+            return
+        }
         if (requestCode in 4102..4103 && resultCode == RESULT_OK) {
             val selected = data?.data ?: return
             if (selected.scheme == "content") { go("eden-inspector"); edenInspector.accept(selected, requestCode == 4103) }
@@ -122,10 +140,16 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onStart() {
         super.onStart()
         active = true
+        romSync.start()
         displays.registerDisplayListener(this, null)
         showCompanion()
     }
+    override fun onResume() {
+        super.onResume()
+        romSync.resume()
+    }
     override fun onStop() {
+        romSync.stop()
         active = false
         displays.unregisterDisplayListener(this)
         companion?.dismiss()
@@ -137,6 +161,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         chatPanel.close()
         configSnapshots.close()
         edenInspector.close()
+        romSync.close()
         worker.shutdownNow()
         super.onDestroy()
     }
@@ -214,10 +239,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")
+            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync") && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
@@ -237,6 +262,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             "eden-inspector" -> {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
                 body.addView(edenInspector.createView(this))
+            }
+            "library-sync" -> {
+                body.addView(utilityButton(this, "Back to My Thor") { go("device") })
+                body.addView(romSync.createView(this))
             }
             "snapshots" -> {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
@@ -265,8 +294,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync") && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
@@ -377,6 +406,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
         body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
         body.addView(button(this, "Game care") { go("care") })
+        body.addView(button(this, "Library sync") { go("library-sync") })
     }
     private fun playAppName(pkg: String) = when (pkg) {
         "org.azahar_emu.azahar" -> "Azahar"

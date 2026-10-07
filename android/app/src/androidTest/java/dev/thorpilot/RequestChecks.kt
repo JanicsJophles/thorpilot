@@ -21,6 +21,13 @@ object RequestChecks {
         val result = client.fetch("https://example.com/prefix/", "dummy-test-key")
         check(result.isSuccess && result.rows.single().progress == 25.0)
         check(result.rows.single().status == "metadata")
+        check(result.summary().contains("Waiting for metadata / peers"))
+        val failed = RequestClient.parse("""{"items":[{"game":"Test","status":"import-failed","detail":"Unsupported format","review_required":true,"client_status":"downloaded","client_detail":"Transfer complete"}]}""")
+        check(failed.rows.single().status == "import-failed")
+        check(failed.summary().contains("Import failed") && failed.summary().contains("Unsupported format"))
+        check(failed.summary().contains("Review this release") && failed.summary().contains("Client: Awaiting import"))
+        check(RequestClient.parse("""{"items":[{"status":"imported"}]}""").summary().contains("does not confirm a copy"))
+        check(RequestClient.parse("""{"items":[{"status":"new-server-state"}]}""").rows.single().statusLabel == "new-server-state")
         check(wire.getRequestProperty("X-Api-Key") == "dummy-test-key")
         check(!wire.instanceFollowRedirects && wire.disconnected)
         listOf(301, 401, 403, 404, 429, 500).forEach { code ->

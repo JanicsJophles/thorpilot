@@ -30,11 +30,47 @@ object ServerAddress {
     }
 }
 
-data class GameRequest(val title: String, val platform: String, val status: String, val detail: String, val progress: Double?)
+data class GameRequest(
+    val title: String, val platform: String, val status: String, val detail: String, val progress: Double?,
+    val reviewRequired: Boolean = false, val clientStatus: String = "", val clientDetail: String = ""
+) {
+    val statusLabel: String get() = label(status)
+    fun description(): String = buildList {
+        if (detail.isNotBlank()) add(detail)
+        if (status == "imported") add("In your server library. This does not confirm a copy on your Thor or SD card.")
+        if (reviewRequired) add("Review this release in ROMarr before importing it.")
+        if (clientStatus.isNotBlank()) add("Client: ${label(clientStatus)}${if (clientDetail.isBlank()) "" else " — $clientDetail"}")
+        if (status in setOf("failed", "import-failed", "interrupted"))
+            add("Open Your requests in ROMarr to review the cause and choose another release if needed.")
+    }.joinToString("\n")
+    companion object {
+        fun label(status: String): String = when (status) {
+            "searching" -> "Searching"
+            "wanted" -> "Waiting for a release"
+            "queued" -> "Queued"
+            "downloading", "grabbed" -> "Downloading"
+            "metadata" -> "Waiting for metadata / peers"
+            "stalled" -> "Stalled"
+            "paused" -> "Paused"
+            "verifying" -> "Verifying"
+            "repairing" -> "Repairing"
+            "extracting" -> "Extracting"
+            "processing" -> "Processing"
+            "downloaded" -> "Awaiting import"
+            "importing" -> "Importing"
+            "imported" -> "Imported to library"
+            "import-failed" -> "Import failed"
+            "failed" -> "Request failed"
+            "interrupted" -> "Interrupted"
+            "unknown", "" -> "Status unavailable"
+            else -> status // Preserve new server states rather than claiming success or failure.
+        }
+    }
+}
 data class RequestResult(val rows: List<GameRequest> = emptyList(), val message: String? = null) {
     val isSuccess: Boolean get() = message == null
     fun summary(): String = message ?: if (rows.isEmpty()) "No requests yet." else rows.joinToString("\n\n") {
-        "${it.title}\n${it.platform} · ${it.status}\n${it.detail}".trim()
+        "${it.title}\n${it.platform} · ${it.statusLabel}\n${it.description()}".trim()
     }
 }
 
@@ -93,7 +129,7 @@ class RequestClient(private val open: (URL) -> HttpsURLConnection = { it.openCon
                     fun text(key: String, fallback: String = "", limit: Int = 500): String =
                         (row.opt(key) as? String)?.take(limit)?.filter { it == '\n' || it == '\t' || !it.isISOControl() } ?: fallback
                     val progress = (row.opt("progress") as? Number)?.toDouble()?.takeIf { it.isFinite() }?.coerceIn(0.0, 100.0)
-                    GameRequest(text("game", "Untitled", 200), text("platform", limit = 50), text("status", "unknown", 50), text("detail"), progress)
+                    GameRequest(text("game", "Untitled", 200), text("platform", limit = 50), text("status", "unknown", 50), text("detail"), progress, row.opt("review_required") == true, text("client_status", limit = 50), text("client_detail"))
                 }
                 RequestResult(rows)
             } catch (_: Exception) { RequestResult(message = "The server returned an incompatible request list. Check the game-requests adapter.") }

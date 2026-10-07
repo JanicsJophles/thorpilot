@@ -1,4 +1,8 @@
-# Cocoon launcher widget prototype
+# Cocoon launcher entry point
+
+For a normal one-cell shortcut, open Cocoon **All apps**, long-press **Thorpilot**, and choose **Add to Home**. This is the recommended default. The physical Thor was switched to this single tile and its launch was verified on 2026-10-07. Remove an existing widget through its context menu → Delete; that removes only the launcher widget.
+
+## Optional widget
 
 The Android source includes a standard `AppWidgetProvider` and responsive `RemoteViews` entry point. This is a launcher shortcut widget, not a background agent. It never fetches a server, creates requests, or changes emulator settings.
 
