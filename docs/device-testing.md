@@ -1,0 +1,38 @@
+# Testing on a handheld
+
+Enable Developer options and USB debugging, connect a data cable, and approve the workstation on the handheld. ADB is the development transport; the app does not require ADB, root, or accessibility privileges to run.
+
+```sh
+adb devices -l
+adb shell dumpsys display
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n dev.thorpilot/.MainActivity
+```
+
+Use `adb shell dumpsys display` to discover logical display IDs. Never assume the second display is 1. `adb shell input -d DISPLAY_ID tap X Y` routes a test tap to a particular display. Use `adb shell dumpsys SurfaceFlinger --display-id` for the physical IDs accepted by `adb exec-out screencap -p -d PHYSICAL_ID`.
+
+Check the following on real hardware:
+
+- Both screens render, with readable text and reachable buttons.
+- Companion actions change the main workspace.
+- Releasing the companion leaves the main workspace usable.
+- Leaving Thorpilot dismisses its presentation; returning restores it only if enabled.
+- A force-stop/relaunch preserves the screen preference and saved connection.
+- An invalid server URL is rejected, and authentication/network errors stay visible.
+- Requests remain read-only. No imported/requested state is inferred from a button click.
+
+Hardware screenshots, logs, serial numbers, server addresses, and credentials belong in ignored local artifacts, not commits. Debug APKs are for development; distribution signing remains separate.
+
+## Instrumented checks
+
+```sh
+cd android
+./gradlew assembleDebug assembleDebugAndroidTest lintDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb shell am instrument -w dev.thorpilot.test/dev.thorpilot.DeviceChecks
+```
+
+The small instrumentation runner prints PASS or FAIL. It uses a separate test preference file and checks HTTPS URL validation, actual Android Keystore encryption/round-trip, clearing the connection, device inventory, and native navigation. It does not alter the user's saved connection. CI builds the test APK; running it requires a connected device or emulator.
+
+First hardware pass: AYN Thor on Android 13, two internal displays. Both rendered; secondary-display touches changed the main workspace. Releasing the presentation persisted across restart. Going Home removed the presentation and returning restored it when enabled. Keystore and navigation checks passed. Live server connectivity, physical controller input, rotation, other Android versions, and emulator launch/resume compatibility still need dedicated testing.

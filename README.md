@@ -2,7 +2,24 @@
 
 A dual-screen emulation companion for Android handhelds, designed to live alongside Cocoon.
 
-**Early prototype, not a finished Android app.** The current build is a working browser design prototype with a read-only request adapter. It does not control a handheld, tune an emulator, run an LLM, or download games. The concept chat clearly uses scripted responses.
+**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, launches installed emulators, and reads requests from an optional server. It does not yet run an LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
+
+## Android app
+
+Requires Android 11 or newer. Build with JDK 17+ and Android SDK 35:
+
+```sh
+cd android
+./gradlew assembleDebug lintDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n dev.thorpilot/.MainActivity
+```
+
+Launch Thorpilot from Cocoon like any other installed app. The main display shows the workspace; a presentation-capable secondary display shows companion actions. Display IDs are discovered at runtime. Release the companion from either screen, or leave the app to return the second screen to other apps. Single-screen devices keep every action in the main workspace.
+
+Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native AI chat, a launcher widget, scoped SD-card access, and tuning are still on the roadmap.
+
+See [device testing](docs/device-testing.md) for the ADB development loop.
 
 ## Try it
 

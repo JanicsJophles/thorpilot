@@ -6,11 +6,14 @@
 - [x] Optional read-only custom ROMarr request adapter
 - [x] Tab-local conversation/draft persistence
 - [x] Tests and CI
+- [x] Native Kotlin app with physical display discovery and lifecycle handling
+- [x] Encrypted on-device connection settings
+- [x] AYN Thor USB installation, touch routing, and device tests
 
 ## Next: real handheld foundation
 
 - [ ] Inventory Cocoon version, device variant, firmware and emulator packages
-- [ ] Kotlin/Compose companion with real display discovery and lifecycle handling
+- [ ] Refine native UI and introduce Compose where useful
 - [ ] Android widget and Cocoon launch/display verification
 - [ ] Explicit pairing and scoped device inventory
 - [ ] Stock ROMarr adapter and documented capability negotiation
