@@ -15,7 +15,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - run: npm test
+      - run: npm run build:site && node tools/check-site.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thorpilot-site
+          path: artifacts/site
   android:
     runs-on: [self-hosted, Linux, X64, atlas, thorpilot]
     steps:

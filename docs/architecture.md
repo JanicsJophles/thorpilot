@@ -1,6 +1,8 @@
 # Architecture
 
-The browser prototype demonstrates presentation and a read-only integration boundary. Native Android work remains ahead.
+The browser prototype demonstrates presentation and a read-only integration boundary. The native Android prototype now implements dual-display presentation, optional server-backed discovery chat, encrypted connection storage, and read-only request status. General device tools remain planned.
+
+See the [copilot vision](copilot-vision.md), [integration evidence](integration-feasibility.md), [proposed architecture decisions](copilot-adrs.md), and [delivery gates](copilot-delivery.md) for the next stages.
 
 Planned flow: Cocoon widget → Android companion → authenticated agent service → optional catalog/request/sync adapters and paired device tools.
 
