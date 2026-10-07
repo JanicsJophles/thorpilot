@@ -45,10 +45,15 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         displays = getSystemService(DisplayManager::class.java)
         store = ConnectionStore(this)
         chatPanel = ChatPanel(this, store) { go("settings") }
-        page = state?.getString("page") ?: "home"
+        page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
         requestText = state?.getString("requests") ?: requestText
         render()
+    }
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        ThorpilotWidget.destination(intent)?.let { go(it) }
     }
     override fun onSaveInstanceState(out: Bundle) {
         out.putString("page", page)
@@ -150,7 +155,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         navigation.forEach { (id, item) ->
             item.isSelected = page == id
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) PilotGlass(dp(this@MainActivity, 16).toFloat(), true) else shape(Color.TRANSPARENT, 16f), null)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
             item.setTextColor(if (page == id) iris else muted)
         }
         body.removeAllViews()
@@ -171,7 +176,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             insets
         }
         val header = horizontal(this)
-        header.addView(label(this, "Thorpilot", 20f, true).apply { setPadding(0, 0, dp(context, 18), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
+        header.addView(label(this, "Thorpilot", 20f, true).apply { setPadding(0, 0, dp(context, 26), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
         val nav = horizontal(this).apply {
             background = PilotGlass(dp(this@MainActivity, 23).toFloat())
             setPadding(dp(context, 3), 0, dp(context, 3), 0)
@@ -180,7 +185,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) PilotGlass(dp(this@MainActivity, 16).toFloat(), true) else shape(Color.TRANSPARENT, 16f), null)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
                 setTextColor(if (page == id) iris else muted)
             }
             navigation[id] = item
@@ -210,12 +215,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         val scene = LinearLayout(this).apply {
             orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(context, 12), 0, dp(context, 26), dp(context, 18))
+            setPadding(dp(context, 12), dp(context, 5), dp(context, 26), dp(context, 18))
         }
         val artwork = ImageView(this).apply { setImageDrawable(PilotJourney()); contentDescription = "A handheld drifting around a little moon" }
         if (wide) scene.addView(artwork, LinearLayout.LayoutParams(0, dp(this, 166), 1.05f))
         else scene.addView(artwork, LinearLayout.LayoutParams(-1, dp(this, 175)))
-        val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 12), 0, 0, 0) }
+        val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 20), 0, 0, 0) }
         introduction.addView(label(this, "Your next adventure\nstarts with a conversation.", 24f, true))
         introduction.addView(label(this, "Find a hidden gem. Check your library.\nLet’s make more time for play.", 14f).apply { setTextColor(muted) })
         introduction.addView(button(this, "Find my next game") { go("chat") }.apply {
@@ -236,7 +241,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         device.addView(status)
         addWeighted(dock, device, 1f, 18)
         addWeighted(dock, utilityButton(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
-        addWeighted(dock, utilityButton(this, if (lowerEnabled) "Release lower screen" else "Use lower screen") { toggleCompanion() })
+        addWeighted(dock, utilityButton(this, if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
         body.addView(dock)
         body.addView(label(this, "Touch or D-pad to explore     •     Device tuning is still being built", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }

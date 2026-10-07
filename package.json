@@ -6,10 +6,14 @@
   "description": "A dual-screen emulation companion for Android handhelds and Cocoon.",
   "scripts": {
     "start": "node src/server.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "build:site": "node tools/build-site.mjs"
   },
   "engines": {
     "node": ">=22"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "marked": "18.1.0"
+  }
 }

@@ -41,6 +41,7 @@ class DeviceChecks : Instrumentation() {
             var uiFailure: Throwable? = null
             runOnMainSync {
                 try {
+                WidgetChecks.run(targetContext)
                 fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup)
                     (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()
                 fun click(text: String) {
@@ -62,7 +63,7 @@ class DeviceChecks : Instrumentation() {
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }
-            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, and native navigation\n") })
+            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
         } catch (e: Throwable) {
             finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAIL: ${e.javaClass.simpleName}: ${e.message} at ${e.stackTrace.firstOrNull()}\n") })
         }

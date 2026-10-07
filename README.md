@@ -1,5 +1,7 @@
 # Thorpilot
 
+[Project website](https://thorpilot.rackmind.ai) · [Documentation](https://thorpilot.rackmind.ai/docs/) · [Copilot vision](docs/copilot-vision.md)
+
 A dual-screen emulation companion for Android handhelds, designed to live alongside Cocoon.
 
 **Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, launches installed emulators, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
