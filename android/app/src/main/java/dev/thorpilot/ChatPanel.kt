@@ -68,7 +68,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                     if (!busy) { messages = emptyList(); draft = ""; error = null; history.clear(); refresh() }
                 }.show()
         }.apply { isEnabled = !busy; layoutParams = LinearLayout.LayoutParams(-2, -2) })
-        root.addView(heading)
+        root.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 12); bottomMargin = dp(c, 6) })
         root.addView(text(c, "Game discovery through your server. Suggestions never start a download.", 13f).apply { setTextColor(muted) })
         if (store.url.isBlank()) {
             root.addView(text(c, "Connect your ROMarr server to start a conversation. Your model provider runs through that server."))
