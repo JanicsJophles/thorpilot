@@ -15,7 +15,10 @@
             </intent-filter>
         </activity>
         <receiver android:name=".ThorpilotWidget" android:exported="false" android:label="Thorpilot companion">
-            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/thorpilot_widget_info" />
         </receiver>
     </application>

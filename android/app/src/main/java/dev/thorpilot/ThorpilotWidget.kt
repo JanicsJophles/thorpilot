@@ -3,14 +3,21 @@ package dev.thorpilot
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.RemoteViews
 
 /** A launcher entry point, not a second agent or a background polling service. */
 class ThorpilotWidget : AppWidgetProvider() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            val manager = AppWidgetManager.getInstance(context)
+            onUpdate(context, manager, manager.getAppWidgetIds(ComponentName(context, ThorpilotWidget::class.java)))
+        }
+    }
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { update(context, manager, it, manager.getAppWidgetOptions(it)) }
     }
@@ -19,7 +26,7 @@ class ThorpilotWidget : AppWidgetProvider() {
     }
     private fun update(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) {
         val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 240)
-        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 64)
         manager.updateAppWidget(id, buildViews(context, width, height))
     }
     companion object {
@@ -37,11 +44,8 @@ class ThorpilotWidget : AppWidgetProvider() {
             }
         }
         fun buildViews(context: Context, widthDp: Int, heightDp: Int): RemoteViews {
-            val narrow = widthDp < 250
+            val narrow = widthDp < 300
             return RemoteViews(context.packageName, R.layout.thorpilot_widget).apply {
-                setTextViewText(R.id.widget_title, "Thorpilot")
-                setTextViewText(R.id.widget_hint, "Your next adventure starts here")
-                setViewVisibility(R.id.widget_hint, if (narrow || heightDp < 125) View.GONE else View.VISIBLE)
                 setTextViewText(R.id.widget_chat, if (narrow) "Chat" else "Find a game")
                 setTextViewText(R.id.widget_requests, "Requests")
                 listOf(R.id.widget_header to "home", R.id.widget_chat to "chat", R.id.widget_requests to "requests").forEachIndexed { index, (view, page) ->
