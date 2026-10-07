@@ -42,3 +42,19 @@ First hardware pass: AYN Thor on Android 13, two internal displays. Both rendere
 `python3 tools/device.py inspect` discovers the device and physical screens. After building both APKs, `python3 tools/device.py test` installs and runs checks, and fails unless the runner reports PASS. `install` launches the app; `capture` saves every physical screen into ignored `artifacts/device/`. Use `--serial` only when multiple devices are connected. No fixed screen IDs are baked into the helper.
 
 The native test suite also checks chat parsing/history, bounded request transport, redirects, malformed responses, credential isolation, and repeated tab navigation retaining the same shell.
+
+## Acceptance loop for each meaningful change
+
+Build and lint first, then run instrumentation on the identified Thor using an explicit serial when more than one device is attached. Run the affected journey with real UI interaction; inspect both displays, not just the test runner output.
+
+For a release candidate, walk through:
+
+1. Enter from Cocoon's widget, visit each tab, and return to Cocoon.
+2. Open a saved conversation, navigate away/back, and restart. Confirm history and retry behavior without submitting accidental duplicate messages.
+3. Refresh requests against a configured test service. Check loading, empty, unavailable, and failed states; distinguish download metadata from game data.
+4. Release and reclaim the second screen, then leave and resume the app. Confirm it does not cover an emulator after yielding.
+5. Navigate by touch and an actual controller. Injected ADB D-pad events are useful regression evidence but do not verify physical gamepad mapping.
+6. Exercise changed-connection and forget-connection paths using synthetic servers and isolated test storage, never by moving real credentials between services.
+7. Inspect screenshots for clipped text, scrunched spacing, oversized controls, keyboard obstruction, and tab flicker.
+
+Record the build, device/OS version, exact journeys, observed results, and untested areas locally. A passing build, instrumentation suite, or single walkthrough is not a production-readiness claim. Rotation, long sessions, offline recovery, controller behavior, and emulator handoffs need their own coverage before being described as seamless.

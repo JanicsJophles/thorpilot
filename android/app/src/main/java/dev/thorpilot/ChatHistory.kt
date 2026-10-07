@@ -7,6 +7,17 @@ import org.json.JSONObject
 /** Bounded local conversation. App backup is disabled; never store API keys here. */
 class ChatHistory(context: Context, preferencesName: String = "chat-history") {
     private val prefs = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+    /** The first upgrade binds legacy history before settings can change. Later
+     * changes clear data and update its binding in one durable preferences edit. */
+    fun bind(identity: String): ChatSnapshot = synchronized(this) {
+        val previous = prefs.getString("connection-identity", null)
+        if (previous != identity) {
+            val edit = prefs.edit()
+            if (previous != null || identity.isBlank()) edit.clear()
+            check(edit.putString("connection-identity", identity).commit()) { "Could not bind conversation storage." }
+        }
+        load()
+    }
     fun load(): ChatSnapshot = synchronized(this) {
         val draft = (prefs.getString("draft", "") ?: "").take(3000)
         val raw = prefs.getString("messages", "[]") ?: "[]"
