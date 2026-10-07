@@ -42,13 +42,34 @@ object RomSyncPlan {
         return segments
     }
     private fun validEntry(e: Entry) = e.sizeBytes >= 0 && e.sha256.matches(Regex("[a-fA-F0-9]{64}"))
-    private fun same(a: Entry, b: Entry) = a.sizeBytes == b.sizeBytes && a.sha256.equals(b.sha256, true)
+    private fun same(a: Entry, b: Entry) = validEntry(a) && validEntry(b) && a.sizeBytes == b.sizeBytes && a.sha256.equals(b.sha256, true)
+
+    /** Hash only destination files which could be identical to a routed source.
+     * Empty destination hashes are inventory-only; they can never authorize SKIP.
+     * Source hashes remain mandatory and verified copies still recheck their bytes.
+     */
+    fun verifyDestination(source: List<Entry>, destination: List<Entry>, destinationFolders: Set<String>,
+                          readHash: (Entry) -> Entry): List<Entry> {
+        val proposed = plan(source, destination, destinationFolders)
+        val byPath = destination.groupBy { key(it.relativePath) }
+        val needed = proposed.mapNotNull { action ->
+            val path = action.destinationPath ?: return@mapNotNull null
+            val matches = byPath[key(path)].orEmpty()
+            matches.singleOrNull()?.takeIf { it.sha256.isEmpty() && it.sizeBytes == action.source.sizeBytes }?.relativePath
+        }.toSet()
+        return destination.map { entry ->
+            if (entry.relativePath !in needed) entry
+            else readHash(entry).also {
+                require(it.relativePath == entry.relativePath && validEntry(it)) { "Invalid destination checksum result" }
+            }
+        }
+    }
     private fun overlaps(a: String, b: String) = a == b || a.startsWith("$b/") || b.startsWith("$a/")
 
     /** Paths are relative to each ROMs root. No deletion, overwrite, renaming, extraction, or I/O. */
     fun plan(source: List<Entry>, destination: List<Entry>, destinationFolders: Set<String> = emptySet()): List<Action> {
         // An incomplete or ambiguous destination inventory cannot authorize safe copies.
-        require(destination.all { parts(it.relativePath)?.size?.let { n -> n >= 2 } == true && validEntry(it) }) { "Invalid destination inventory" }
+        require(destination.all { parts(it.relativePath)?.size?.let { n -> n >= 2 } == true && it.sizeBytes >= 0 && (it.sha256.isEmpty() || validEntry(it)) }) { "Invalid destination inventory" }
         require(destinationFolders.all { parts(it)?.size == 1 }) { "Invalid destination folder" }
         val existing = destination.groupBy { key(it.relativePath) }
         val folders = (destinationFolders + destination.map { it.relativePath.substringBefore('/') }).groupBy { aliases[key(it)] ?: key(it) }

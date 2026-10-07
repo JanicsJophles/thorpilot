@@ -18,6 +18,7 @@ import java.util.concurrent.Executors
 class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("rom-sync", Context.MODE_PRIVATE)
+    private var messageView: TextView? = null
     private val access = RomTreeAccess(app)
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -51,7 +52,7 @@ class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
         listening = true
     }
     fun stop() { if (listening) { app.unregisterReceiver(receiver); listening = false } }
-    fun close() { stop(); closed = true; generation++; root = null; worker.shutdownNow() }
+    fun close() { stop(); closed = true; generation++; root = null; messageView = null; worker.shutdownNow() }
     fun resume() {
         if (closed || busy) return
         val roots = listOfNotNull(selected(false), selected(true))
@@ -91,7 +92,10 @@ class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
         busy = true; render(); val token = generation
         worker.execute {
             val result = runCatching {
-                val a = access.scan(from); val b = access.scan(to)
+                val (a, b) = access.preview(from, to) { update ->
+                    check(!closed && token == generation) { "Storage changed. Preview again before continuing." }
+                    main.post { if (!closed && token == generation) { message = update; messageView?.text = update } }
+                }
                 Triple(a, b, RomSyncPlan.plan(a.entries, b.entries, b.folders))
             }
             main.post {
@@ -151,6 +155,7 @@ class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
             invalidate("Folder selections cleared. Files were not changed.")
         }
         text(message)
+        messageView = host.getChildAt(host.childCount - 1) as TextView
         plan?.let { actions ->
             val counts = actions.groupingBy { it.kind }.eachCount()
             text("${counts[RomSyncPlan.Kind.COPY] ?: 0} to copy · ${counts[RomSyncPlan.Kind.SKIP] ?: 0} already present\n${counts[RomSyncPlan.Kind.CONFLICT] ?: 0} conflicts · ${counts[RomSyncPlan.Kind.REVIEW] ?: 0} need review · ${counts[RomSyncPlan.Kind.REJECT] ?: 0} excluded", 15f)

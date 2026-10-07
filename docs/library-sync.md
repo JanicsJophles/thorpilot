@@ -4,7 +4,7 @@ Open **My Thor → Library sync**. Choose the source ROMs folder and destination
 
 The directory reference is [Retro Game Corps’ ES-DE Directories v1.0](https://github.com/retrogamecorps/ES-DE-Directories/releases/tag/v1.0), based on ES-DE 3.4.0. Use its existing platform subfolders rather than creating a second directory convention. The template supplies folders; it does not supply games.
 
-Preview scans and hashes both selected libraries off the UI thread. Platform aliases map into existing folder names: Nintendo 3DS → n3ds, Nintendo DS → nds, PSP → psp, PlayStation → psx. Nested disc files keep their relative paths. Unknown platforms or misplaced formats require review.
+Preview hashes source files off the UI thread and reads destination metadata first. It only hashes destination files that could match a source file at the routed path and size; unrelated large games are not read. Progress reports the file and bytes checked. Platform aliases map into existing folder names: Nintendo 3DS → n3ds, Nintendo DS → nds, PSP → psp, PlayStation → psx. Nested disc files keep their relative paths. Unknown platforms or misplaced formats require review.
 
 The preview distinguishes missing files, identical files (same path, size and SHA-256), conflicting content, and excluded files. Only **Copy missing files** writes data. It does not overwrite or remove existing files. Saves, configuration, artwork, archives and .3ds sources are excluded; n3ds accepts CIA. Existing .3ds games at the destination remain untouched. A copied CIA still requires installation through the emulator.
 
@@ -25,9 +25,31 @@ reported 17 copies and no conflicts; the native flow copied and verified all
 with the expected size, no leftover partials, and unchanged SHA-256 values
 for all seven pre-existing game, save, and state files.
 
+A second native preview reported zero copies, 17 identical files, and zero
+conflicts, confirming repeat sync did not offer duplicates.
+
 Removal during transfer, crash recovery and a complete eject/reinsert cycle
 remain unverified. This feature is a local copy workflow, not a ROMarr
 downloader or a guarantee that every requested game is present. ROMarr's
 server-library status and the handheld's file inventory are separate facts.
 
 Android access follows the [Storage Access Framework](https://developer.android.com/training/data-storage/shared/documents-files).
+
+## Play without copying
+
+Copying is optional. **My Thor → On this device** browses a selected SD-card or
+internal ROMs folder using filenames and sizes; it does not read full game
+contents, verify compatibility, install games, or launch an individual file.
+Folder access is remembered independently for both locations. The inventory
+can reuse compatible selections already made in Library sync.
+
+[Cocoon supports multiple ROM folders per platform](https://cocoon-shell.com/wiki/emulator-setup/).
+In Cocoon, open **Settings → Library & Data → Platforms**, add each location's
+platform folder, keep the existing folder, select the default player and
+rescan. Games can then remain where they are. Thorpilot offers a launcher
+handoff and setup guidance; it does not silently change Cocoon's configuration.
+
+A CIA is an installation package, so selecting its location is not equivalent
+to launching a playable 3DS cartridge file. Use Azahar's installation flow
+before launching the installed title. Keep emulator saves and save states
+separate from ROM copying; the sync never moves or replaces them.

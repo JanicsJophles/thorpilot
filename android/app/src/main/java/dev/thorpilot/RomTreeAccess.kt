@@ -13,7 +13,7 @@ class RomTreeAccess(context: Context) {
     private val resolver = context.applicationContext.contentResolver
     data class Snapshot(val tree: Uri, val entries: List<RomSyncPlan.Entry>, val folders: Set<String>,
                         internal val documents: Map<String, Uri> = emptyMap())
-    private data class Node(val uri: Uri, val name: String, val directory: Boolean)
+    private data class Node(val uri: Uri, val name: String, val directory: Boolean, val size: Long?)
     private fun key(value: String) = Normalizer.normalize(value, Normalizer.Form.NFC).lowercase(Locale.ROOT)
     private fun id(tree: Uri): String {
         require(tree.scheme == "content" && tree.authority == "com.android.externalstorage.documents" && D.isTreeUri(tree)) {
@@ -29,7 +29,7 @@ class RomTreeAccess(context: Context) {
         val parentId = D.getDocumentId(parent)
         val uri = D.buildChildDocumentsUriUsingTree(tree, parentId)
         return resolver.query(uri, arrayOf(D.Document.COLUMN_DOCUMENT_ID, D.Document.COLUMN_DISPLAY_NAME,
-            D.Document.COLUMN_MIME_TYPE), null, null, null)?.use { cursor ->
+            D.Document.COLUMN_MIME_TYPE, D.Document.COLUMN_SIZE), null, null, null)?.use { cursor ->
             val result = mutableListOf<Node>()
             while (cursor.moveToNext()) {
                 require(result.size < 20000) { "Folder has too many entries to scan safely." }
@@ -37,14 +37,15 @@ class RomTreeAccess(context: Context) {
                 require(childId.startsWith(parentId.trimEnd('/') + "/")) { "Provider returned an item outside the selected folder." }
                 val name = cursor.getString(1)
                 require(name.isNotEmpty() && name !in setOf(".", "..") && '/' !in name && '\\' !in name) { "Unsafe filename." }
-                result += Node(D.buildDocumentUriUsingTree(tree, childId), name, cursor.getString(2) == D.Document.MIME_TYPE_DIR)
+                result += Node(D.buildDocumentUriUsingTree(tree, childId), name, cursor.getString(2) == D.Document.MIME_TYPE_DIR, if (cursor.isNull(3)) null else cursor.getLong(3))
             }
             result
         } ?: error("Folder unavailable. Reinsert the card or select its ROMs folder again.")
     }
-    private fun digest(uri: Uri, output: java.io.OutputStream? = null): Pair<Long, String> {
+    private fun digest(uri: Uri, output: java.io.OutputStream? = null, progress: (Long) -> Unit = {}): Pair<Long, String> {
         val md = MessageDigest.getInstance("SHA-256")
         var size = 0L
+        var lastProgress = 0L
         resolver.openInputStream(uri)?.use { input ->
             val buffer = ByteArray(256 * 1024)
             while (true) {
@@ -54,11 +55,14 @@ class RomTreeAccess(context: Context) {
                 check(n > 0) { "Storage stopped responding." }
                 size = Math.addExact(size, n.toLong())
                 md.update(buffer, 0, n); output?.write(buffer, 0, n)
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastProgress >= 250) { progress(size); lastProgress = now }
             }
         } ?: error("File unavailable. Check that the card is inserted.")
+        progress(size)
         return size to md.digest().joinToString("") { "%02x".format(it) }
     }
-    fun scan(tree: Uri): Snapshot {
+    fun scan(tree: Uri, hashContents: Boolean = true, progress: (String) -> Unit = {}): Snapshot {
         val entries = mutableListOf<RomSyncPlan.Entry>()
         val documents = mutableMapOf<String, Uri>()
         val folders = linkedSetOf<String>()
@@ -75,13 +79,26 @@ class RomTreeAccess(context: Context) {
                     val ext = node.name.substringAfterLast('.', "").lowercase()
                     if (ext in setOf("txt", "sav", "srm", "state", "ini", "cfg", "json", "xml", "png", "jpg", "jpeg", "webp") || ext.matches(Regex("(?:ml|ds|ss)[0-9]+"))) continue
                     require(entries.size < 20000) { "Too many files for this sync preview." }
-                    val (size, hash) = digest(node.uri)
+                    val (size, hash) = if (hashContents || node.size == null || node.size < 0)
+                        digest(node.uri, progress = { bytes -> progress("Checking $path · ${bytes / (1024 * 1024)} MiB read") })
+                    else node.size to ""
                     entries += RomSyncPlan.Entry(path, size, hash); documents[path] = node.uri
                 }
             }
         }
         walk(root(tree), "", 0)
         return Snapshot(tree, entries, folders, documents)
+    }
+    fun preview(from: Uri, to: Uri, progress: (String) -> Unit = {}): Pair<Snapshot, Snapshot> {
+        val source = scan(from, progress = progress)
+        progress("Listing destination folders; unrelated games do not need checksums…")
+        val inventory = scan(to, hashContents = false, progress = progress)
+        val verified = RomSyncPlan.verifyDestination(source.entries, inventory.entries, inventory.folders) { entry ->
+            val uri = inventory.documents[entry.relativePath] ?: error("Destination is no longer available.")
+            val (size, hash) = digest(uri, progress = { bytes -> progress("Comparing ${entry.relativePath} · ${bytes / (1024 * 1024)} MiB read") })
+            entry.copy(sizeBytes = size, sha256 = hash)
+        }
+        return source to inventory.copy(entries = verified)
     }
     fun copy(source: Snapshot, destination: Snapshot, actions: List<RomSyncPlan.Action>, progress: (String) -> Unit): Int {
         val a = key(id(source.tree)); val b = key(id(destination.tree))

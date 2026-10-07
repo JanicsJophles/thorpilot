@@ -48,4 +48,47 @@ class RomSyncPlanTest {
             "ps2/Game.chd", "dreamcast/Game/Track.raw", "megadrive/Game.smd", "saturn/Game.cue", "n3ds/Game.cia")
         assertTrue(RomSyncPlan.plan(paths.map { entry(it) }, emptyList()).all { it.kind == RomSyncPlan.Kind.COPY })
     }
+    @Test fun unknownDestinationHashCanNeverSkipAndInvalidSourceCannotCopy() {
+        val source = entry("nds/Game.nds")
+        val unknown = source.copy(sha256 = "")
+        assertEquals(RomSyncPlan.Kind.CONFLICT, RomSyncPlan.plan(listOf(source), listOf(unknown)).single().kind)
+        assertEquals(RomSyncPlan.Kind.REJECT, RomSyncPlan.plan(listOf(unknown), emptyList()).single().kind)
+        assertTrue(runCatching { RomSyncPlan.plan(listOf(source), listOf(unknown.copy(sha256 = "invalid"))) }.isFailure)
+    }
+    @Test fun hashesOnlySameSizeRoutedMatchesWithRealReadByteBudget() {
+        val directory = java.nio.file.Files.createTempDirectory("thorpilot-hash-budget").toFile()
+        try {
+            val matching = java.io.File(directory, "match").apply { writeBytes(ByteArray(32) { 7 }) }
+            val unrelated = java.io.File(directory, "unrelated").apply { writeBytes(ByteArray(2 * 1024 * 1024)) }
+            val changedSize = java.io.File(directory, "changed").apply { writeBytes(ByteArray(64)) }
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(matching.readBytes()).joinToString("") { "%02x".format(it) }
+            val source = listOf(RomSyncPlan.Entry("ds/Game.nds", 32, hash), entry("nds/Changed.nds", size = 10), entry("nds/New.nds"))
+            val destination = listOf(RomSyncPlan.Entry("NDS/Game.nds", 32, ""), RomSyncPlan.Entry("switch/Unrelated.nsp", unrelated.length(), ""), RomSyncPlan.Entry("NDS/Changed.nds", 64, ""))
+            val files = mapOf("NDS/Game.nds" to matching, "switch/Unrelated.nsp" to unrelated, "NDS/Changed.nds" to changedSize)
+            var readBytes = 0L
+            val verified = RomSyncPlan.verifyDestination(source, destination, setOf("NDS", "switch")) { entry ->
+                val data = files.getValue(entry.relativePath).readBytes()
+                readBytes += data.size
+                entry.copy(sizeBytes = data.size.toLong(), sha256 = java.security.MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it) })
+            }
+            assertEquals(32L, readBytes) // Not the full 2,097,248-byte destination.
+            assertEquals(listOf(RomSyncPlan.Kind.SKIP, RomSyncPlan.Kind.CONFLICT, RomSyncPlan.Kind.COPY), RomSyncPlan.plan(source, verified, setOf("NDS", "switch")).map { it.kind })
+        } finally { directory.deleteRecursively() }
+    }
+    @Test fun missingFilesReadNoDestinationBytesAndCaseCollisionsStayBlocked() {
+        var calls = 0
+        val source = listOf(entry("nds/New.nds"))
+        val destination = listOf(entry("switch/Huge.nsp").copy(sha256 = ""))
+        assertEquals(destination, RomSyncPlan.verifyDestination(source, destination, emptySet()) { calls++; it })
+        assertEquals(0, calls)
+        val collisions = listOf(entry("nds/A.nds").copy(sha256 = ""), entry("nds/a.nds").copy(sha256 = ""))
+        RomSyncPlan.verifyDestination(listOf(entry("nds/A.nds")), collisions, emptySet()) { error("Ambiguous destination must not be guessed") }
+    }
+    @Test fun destinationChangesWhileHashingStayConflictsAndWrongPathRejected() {
+        val source = listOf(entry("nds/Game.nds"))
+        val destination = source.map { it.copy(sha256 = "") }
+        val changed = RomSyncPlan.verifyDestination(source, destination, emptySet()) { it.copy(sizeBytes = 11, sha256 = "b".repeat(64)) }
+        assertEquals(RomSyncPlan.Kind.CONFLICT, RomSyncPlan.plan(source, changed).single().kind)
+        assertTrue(runCatching { RomSyncPlan.verifyDestination(source, destination, emptySet()) { entry("nds/Other.nds") } }.isFailure)
+    }
 }
