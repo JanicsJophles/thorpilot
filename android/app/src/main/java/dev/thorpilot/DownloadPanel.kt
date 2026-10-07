@@ -19,7 +19,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("download-folders", Context.MODE_PRIVATE)
     private val store = ConnectionStore(app, "downloads")
-    private val jobs = ThorDownloadStore(app)
+    private val jobs = ThorDownloadStore(app).also { ThorDownloadService.initialize(app) }
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private var root: LinearLayout? = null
@@ -34,6 +34,8 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private var generation = 0
     private var polling = false
     private var renderedJob = ""
+    private var showCompleted = false
+    private var renderedCatalogQueue = ""
     private val tick = object : Runnable {
         override fun run() { if (!polling || closed) return; renderJob(); main.postDelayed(this, 1000) }
     }
@@ -151,51 +153,122 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         label(host, "${filtered.size} of ${entries.size} games", 12f)
         if (filtered.size > 100) label(host, "Showing 100 of ${filtered.size} matches. Refine your search to find more.", 12f)
         if (filtered.isEmpty() && entries.isNotEmpty()) label(host, "No matching games. Try another title or platform.")
+        val destination = selected()?.toString()
+        val existing = jobs.states()
         filtered.take(100).forEach { entry ->
             val card = LinearLayout(host.context).apply { orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12)) }
             host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
             label(card, entry.title, 17f)
             label(card, "${entry.platform.uppercase(Locale.ROOT)} · ${size(entry.sizeBytes)}", 12f, true)
-            button(card, "Download to ${if (internal) "internal storage" else "SD card"}") {
-                val destination = selected() ?: run { pick(internal); return@button }
-                ThorDownloadService.start(app, entry, destination)
+            val queued = destination?.let { target -> existing.firstOrNull {
+                ThorDownloadQueue.targetKey(it.target, it.entry.destination()) == ThorDownloadQueue.targetKey(target, entry.destination())
+            } }
+            val title = if (queued == null) "Download to ${if (internal) "internal storage" else "SD card"}"
+                else if (queued.status == "completed") "Ready on ${if (internal) "internal storage" else "SD card"}"
+                else "In transfers · ${queued.status.replaceFirstChar { it.uppercase() }}"
+            button(card, title) {
+                val target = selected() ?: run { pick(internal); return@button }
+                ThorDownloadService.start(app, entry, target)
                 renderJob()
-            }
+            }.apply { isEnabled = queued == null; alpha = if (queued == null) 1f else 0.6f }
+
         }
     }
     private fun renderJob() {
         val host = jobHost ?: return
-        val state = runCatching { jobs.state() }.getOrNull()
-        val signature = state?.let { "${it.entry.id}:${it.target}:${it.status}:${it.bytes}:${it.message}:${ThorDownloadService.isRunning}" }.orEmpty()
+        val states = runCatching { jobs.states() }.getOrDefault(emptyList())
+        val signature = "${jobs.parallelism}:$showCompleted:" + states.joinToString("|") {
+            "${it.jobId}:${it.target}:${it.status}:${it.bytes}:${it.message}:${ThorDownloadService.isActive(it.jobId)}"
+        }
         if (signature == renderedJob) return
         renderedJob = signature
         host.removeAllViews()
-        if (state == null) return
-        label(host, state.entry.title, 17f, true)
-        label(host, state.status.replace('_', ' ').replaceFirstChar { it.uppercase() }, 13f)
-        val progress = ProgressBar(host.context, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 1000; progress = if (state.entry.sizeBytes > 0) ((state.bytes.toDouble() / state.entry.sizeBytes) * 1000).toInt().coerceIn(0, 1000) else 0
+        val catalogSignature = states.joinToString("|") { "${it.jobId}:${it.status}" }
+        if (catalogSignature != renderedCatalogQueue) {
+            renderedCatalogQueue = catalogSignature
+            renderCatalog()
         }
-        host.addView(progress, LinearLayout.LayoutParams(-1, dp(6)))
-        label(host, "${size(state.bytes)} / ${size(state.entry.sizeBytes)} · ${state.message}", 12f)
-        val destination = runCatching { RomLibraryMetadata.documentId(Uri.parse(state.target)) }.getOrDefault("Selected ROMs folder")
-        val storage = if (destination.substringBefore(':') == "primary") "Internal storage" else "SD card"
-        val relativePath = runCatching { state.entry.destination() }.getOrDefault(state.entry.fileName)
-        label(host, "$storage · $destination/$relativePath", 12f, true)
-        when (state.status) {
-            "queued", "connecting", "downloading", "verifying" -> {
-                if (ThorDownloadService.isRunning) button(host, "Pause transfer") { ThorDownloadService.pause(app) }
-                else button(host, "Resume transfer") { ThorDownloadService.resume(app) }
+        val active = states.count { ThorDownloadService.isActive(it.jobId) }
+        val queued = states.count { it.status == "queued" }
+        val completed = states.filter { it.status == "completed" }
+        val paused = states.count { it.status == "paused" }
+        val errors = states.count { it.status == "error" }
+        label(host, "Transfers", 17f, true)
+        label(host, buildList {
+            add("$active active"); add("$queued queued")
+            if (paused > 0) add("$paused paused")
+            if (errors > 0) add("$errors need attention")
+            if (completed.isNotEmpty()) add("${completed.size} ready")
+        }.joinToString(" · "), 12f)
+        label(host, "Download at once", 12f)
+        row(host, (1..3).map { count ->
+            (if (jobs.parallelism == count) "$count ✓" else "$count") to {
+                jobs.setParallelism(count)
+                ThorDownloadService.refresh(app)
+                renderJob()
             }
-            "paused", "error" -> button(host, "Resume transfer") { ThorDownloadService.resume(app) }
+        })
+        label(host, "Queued games start automatically. Paused games wait for you.", 12f)
+        states.filter { it.status != "completed" }.forEach { renderJobCard(host, it) }
+        if (completed.isNotEmpty()) {
+            button(host, if (showCompleted) "Hide ${completed.size} completed" else "${completed.size} completed · Show") {
+                showCompleted = !showCompleted; renderJob()
+            }
+            if (showCompleted) {
+                completed.takeLast(5).reversed().forEach { renderJobCard(host, it) }
+                if (completed.size > 5) label(host, "Showing the 5 most recent completions.", 12f)
+            }
         }
-        if (!ThorDownloadService.isRunning && state.status != "completed") button(host, "Cancel transfer…") {
-            AlertDialog.Builder(host.context).setTitle("Cancel this download?")
-                .setMessage("Remove this transfer's unfinished file. Existing games and saves stay in place.")
+    }
+    private fun renderJobCard(host: LinearLayout, state: ThorDownloadState) {
+        val card = LinearLayout(host.context).apply {
+            orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat())
+            setPadding(dp(12), dp(6), dp(12), dp(10))
+        }
+        host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        label(card, state.entry.title, 15f, true)
+        val status = when (state.status) {
+            "queued" -> "Queued"
+            "connecting" -> "Connecting"
+            "downloading" -> "Downloading"
+            "verifying" -> "Verifying checksum"
+            "completed" -> "Ready on device"
+            "paused" -> "Paused"
+            "error" -> "Needs attention"
+            else -> state.status.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        }
+        val destination = runCatching { RomLibraryMetadata.documentId(Uri.parse(state.target)) }.getOrDefault("Selected ROMs folder")
+        val storage = if (destination.substringBefore(':') == "primary") "Internal" else "SD card"
+        val relativePath = runCatching { state.entry.destination() }.getOrDefault(state.entry.fileName)
+        label(card, "$status · $storage · ${state.entry.platform.uppercase(Locale.ROOT)}", 12f)
+        if (state.status != "completed") {
+            val progress = ProgressBar(host.context, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 1000; progress = if (state.entry.sizeBytes > 0) ((state.bytes.toDouble() / state.entry.sizeBytes) * 1000).toInt().coerceIn(0, 1000) else 0
+                isIndeterminate = state.status == "verifying"
+                progressTintList = android.content.res.ColorStateList.valueOf(0xff6cf7d0.toInt())
+            }
+            card.addView(progress, LinearLayout.LayoutParams(-1, dp(5)))
+            label(card, "${size(state.bytes)} / ${size(state.entry.sizeBytes)} · ${state.message}", 12f)
+        }
+        label(card, "$destination/$relativePath", 11f)
+        val controls = mutableListOf<Pair<String, () -> Unit>>()
+        when (state.status) {
+            "queued", "connecting", "downloading", "verifying" -> controls += "Pause" to { ThorDownloadService.pause(app, state.jobId) }
+            "paused", "error" -> controls += "Resume" to { ThorDownloadService.resume(app, state.jobId) }
+        }
+        if (!ThorDownloadService.isActive(state.jobId) && state.status != "completed") controls += "Cancel…" to {
+            AlertDialog.Builder(host.context).setTitle("Cancel ${state.entry.title}?")
+                .setMessage("Remove only this transfer's unfinished file. Other downloads, existing games and saves stay in place.")
                 .setNegativeButton("Keep download", null).setPositiveButton("Cancel transfer") { _, _ ->
-                    runCatching { ThorDownloadService.cancel(app) }.onFailure { message = it.message ?: "Could not cancel transfer."; render() }
+                    runCatching { ThorDownloadService.cancel(app, state.jobId) }.onFailure { message = it.message ?: "Could not cancel transfer."; render() }
+                    renderJob()
                 }.show()
         }
+        if (state.status == "completed") controls += "Clear record" to {
+            ThorDownloadService.cancel(app, state.jobId)
+            renderJob()
+        }
+        if (controls.isNotEmpty()) row(card, controls)
     }
     private fun size(bytes: Long): String = if (bytes >= 1_000_000_000) String.format(Locale.ROOT, "%.2f GB", bytes / 1_000_000_000.0) else String.format(Locale.ROOT, "%.1f MB", bytes / 1_000_000.0)
 }

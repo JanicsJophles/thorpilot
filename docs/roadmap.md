@@ -25,7 +25,7 @@
 ## Then: complete useful workflows
 
 - [ ] Persisted request history and idempotent actions across reconnects
-- [x] Explicit storage grants and single-file verified, resumable downloads through an optional library gateway
+- [x] Explicit storage grants and verified, resumable downloads through an optional library gateway, with a durable queue and 1–3 parallel transfers
 - [ ] Multi-file bundles, queued device transfers, and automatic retry policy
 - [ ] Save backup/restore adapters and conflict handling
 - [ ] Multidisc and region/revision-aware library organization

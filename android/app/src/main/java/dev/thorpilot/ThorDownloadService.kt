@@ -12,41 +12,46 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import javax.net.ssl.HttpsURLConnection
 
-/** One durable job, with app-owned SAF partials. Never opens an existing game for writing. */
+/** Durable bounded parallel queue; each worker owns one SAF partial and never overwrites games. */
 class ThorDownloadService : Service() {
     companion object {
         @Volatile var isRunning: Boolean = false
             private set
         private const val CHANNEL = "library-downloads"
         private const val NOTICE = 47
+        private var initialized = false
+        @Volatile private var liveService: ThorDownloadService? = null
+        private val active = java.util.concurrent.ConcurrentHashMap<String, Worker>()
+        private val publicationLock = Any()
+        @Synchronized fun initialize(context: Context) {
+            if(!initialized) { ThorDownloadStore(context).recover(); initialized=true }
+        }
+        fun isActive(jobId: String): Boolean = active.containsKey(jobId)
         @Synchronized fun start(context: Context, entry: ThorDownloadEntry, targetUri: Uri) {
-            require(!isRunning) { "Wait for the current transfer to stop first." }
-            entry.destination()
-            val store = ThorDownloadStore(context)
-            require(store.state()?.status !in setOf("queued","downloading","verifying")) { "Pause the current download first." }
-            val old = store.state()
-            require(old == null || old.status == "completed" || (old.entry == entry && old.target == targetUri.toString())) {
-                "Resume the current partial download before starting another game."
-            }
-            if (old?.entry == entry && old.target == targetUri.toString() && old.status != "completed") { resume(context); return }
-            validateTree(targetUri)
+            initialize(context); entry.destination(); validateTree(targetUri)
             require(context.contentResolver.persistedUriPermissions.any { it.uri == targetUri && it.isWritePermission && it.isReadPermission }) {
                 "Choose the ROMs folder and allow read/write access."
             }
-            check(store.prefs.edit().clear().putString("entry",entry.json().toString()).putString("target",targetUri.toString())
-                .putString("job",UUID.randomUUID().toString()).putString("status","queued").putString("message","Preparing download…").commit())
+            ThorDownloadStore(context).enqueue(entry,targetUri.toString())
             launch(context)
         }
         private fun launch(context: Context) {
-            isRunning = true
             try { context.startForegroundService(Intent(context, ThorDownloadService::class.java)) }
-            catch (e: Exception) { isRunning = false; throw e }
+            catch(e:Exception) {
+                ThorDownloadStore(context).states().filter { it.status == "queued" && !isActive(it.jobId) }.forEach {
+                    ThorDownloadStore(context,it.jobId).update("paused",it.bytes,"Android could not start the transfer. Open Downloads and resume.")
+                }
+                throw e
+            }
         }
+        fun refresh(context: Context) { initialize(context); launch(context) }
         /** Clears only this job's exact hidden partial, never a completed ROM. Call after pausing. */
-        @Synchronized fun cancel(context: Context) {
-            require(!isRunning) { "Pause and wait for the transfer to stop before cancelling." }
-            val store = ThorDownloadStore(context)
-            val state = store.state() ?: return
+        @Synchronized fun cancel(context: Context, jobId: String? = null) {
+            initialize(context)
+            val queue=ThorDownloadStore(context)
+            val state=queue.state(jobId) ?: return
+            require(!isActive(state.jobId)) { "Pause and wait for this transfer to stop before cancelling." }
+            val store = ThorDownloadStore(context,state.jobId)
             val partial = store.prefs.getString("partial", null)
             if (partial != null) {
                 val tree = Uri.parse(state.target); val rootId = validateTree(tree)
@@ -92,18 +97,24 @@ class ThorDownloadService : Service() {
                     }
                 }
             }
-            check(store.prefs.edit().clear().commit())
+            queue.remove(state.jobId)
         }
-        fun pause(context: Context) {
-            ThorDownloadStore(context).prefs.edit().putBoolean("pause",true).commit()
-            context.startService(Intent(context, ThorDownloadService::class.java).setAction("pause"))
+        @Synchronized fun pause(context: Context, jobId: String? = null) {
+            initialize(context)
+            val state=ThorDownloadStore(context).state(jobId) ?: return
+            if(state.status == "completed") return
+            val store=ThorDownloadStore(context,state.jobId)
+            check(store.prefs.edit().putBoolean("pause",true).commit())
+            active[state.jobId]?.connection?.disconnect()
+            if(!isActive(state.jobId)) store.update("paused",state.bytes,"Paused. Your partial download is saved.")
         }
-        @Synchronized fun resume(context: Context) {
-            require(!isRunning) { "The download is already running." }
-            val store = ThorDownloadStore(context)
-            require(store.state() != null) { "Choose a game first." }
-            require(store.state()?.status != "completed") { "This download is already complete." }
-            store.prefs.edit().putBoolean("pause",false).putString("status","queued").commit()
+        @Synchronized fun resume(context: Context, jobId: String? = null) {
+            initialize(context)
+            val state=ThorDownloadStore(context).state(jobId) ?: error("Choose a game first.")
+            require(!isActive(state.jobId)) { "This download is already running." }
+            require(state.status != "completed") { "This download is already complete." }
+            val store=ThorDownloadStore(context,state.jobId)
+            check(store.prefs.edit().putBoolean("pause",false).putString("status","queued").commit())
             launch(context)
         }
         private fun validateTree(tree: Uri): String {
@@ -111,51 +122,73 @@ class ThorDownloadService : Service() {
             return D.getTreeDocumentId(tree).also { require(it.substringAfter(':').split('/').last().equals("ROMs",true)) { "Choose the ROMs folder itself." } }
         }
     }
-    private val executor = Executors.newSingleThreadExecutor()
-    @Volatile private var running = false
-    @Volatile private var connection: HttpsURLConnection? = null
+    private val executor = Executors.newFixedThreadPool(3)
     private lateinit var store: ThorDownloadStore
+    private var latestStartId = 0
     override fun onCreate() {
-        super.onCreate(); store = ThorDownloadStore(this)
+        super.onCreate(); initialize(this); store = ThorDownloadStore(this); liveService=this
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Game downloads",NotificationManager.IMPORTANCE_LOW))
     }
     override fun onBind(intent: Intent?): IBinder? = null
     private fun notification(text: String): Notification = Notification.Builder(this,CHANNEL)
         .setSmallIcon(android.R.drawable.stat_sys_download).setContentTitle("Download to Thor").setContentText(text)
         .setContentIntent(PendingIntent.getActivity(this,0,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE))
-        .addAction(Notification.Action.Builder(null,"Pause",PendingIntent.getService(this,1,Intent(this,ThorDownloadService::class.java).setAction("pause"),PendingIntent.FLAG_IMMUTABLE)).build())
+        .addAction(Notification.Action.Builder(null,"Pause all",PendingIntent.getService(this,1,Intent(this,ThorDownloadService::class.java).setAction("pause"),PendingIntent.FLAG_IMMUTABLE)).build())
         .setOngoing(true).build()
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "pause") {
-            store.prefs.edit().putBoolean("pause",true).commit(); connection?.disconnect()
-            if (!running) { store.state()?.let { store.update("paused",it.bytes,"Paused. Your partial download is saved.") }; stopSelf() }
-            return START_NOT_STICKY
+        latestStartId=startId
+        startForeground(NOTICE,notification("Preparing downloads…"))
+        if(intent?.action == "pause") {
+            store.states().filter { it.status in ThorDownloadQueue.runningStatuses }.forEach { pause(this,it.jobId) }
         }
-        startForeground(NOTICE,notification("Preparing download…"))
-        if (!running) { running = true; isRunning = true; executor.execute {
-            try { transfer() } catch (e: Exception) {
-                val paused = store.prefs.getBoolean("pause",false)
-                store.update(if(paused) "paused" else "error", store.state()?.bytes ?: 0,
-                    if(paused) "Paused. Your partial download is saved." else safeError(e))
-            } finally { connection?.disconnect(); connection = null; running = false; isRunning = false; stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }
-        } }
+        schedule()
         return START_NOT_STICKY
     }
+    private fun schedule(): Unit = synchronized(Companion) {
+        val waiting=store.states().filter { it.status == "queued" }.map { it.jobId }
+        ThorDownloadQueue.next(waiting,active.keys,store.parallelism).forEach { id ->
+            val worker=Worker(id)
+            worker.store.update("connecting",worker.store.state()?.bytes ?: 0,"Connecting to the download server…")
+            active[id]=worker; isRunning=true
+            executor.execute {
+                try { worker.transfer() } catch(e:Exception) {
+                    val paused=worker.store.prefs.getBoolean("pause",false)
+                    worker.store.update(if(paused) "paused" else "error",worker.store.state()?.bytes ?: 0,
+                        if(paused) "Paused. Your partial download is saved." else safeError(e))
+                } finally {
+                    worker.connection?.disconnect()
+                    synchronized(Companion) { active.remove(id); isRunning=active.isNotEmpty() }
+                    android.os.Handler(mainLooper).post { liveService?.let { if(!it.executor.isShutdown) it.schedule() } }
+                }
+            }
+        }
+        if(active.isEmpty()) { isRunning=false; if(stopSelfResult(latestStartId)) stopForeground(STOP_FOREGROUND_REMOVE) }
+        else getSystemService(NotificationManager::class.java).notify(NOTICE,notification("${active.size} transferring · ${store.states().count { it.status == "queued" && !isActive(it.jobId) }} queued"))
+    }
     override fun onTimeout(startId: Int, fgsType: Int) {
-        store.prefs.edit().putBoolean("pause", true).commit()
-        connection?.disconnect()
-        store.state()?.let { store.update("paused", it.bytes, "Android paused the background transfer. Open Downloads and resume.") }
+        store.states().filter { it.status in ThorDownloadQueue.runningStatuses }.forEach { pause(this,it.jobId) }
         stopSelf(startId)
     }
-    override fun onDestroy() { isRunning = false; connection?.disconnect(); executor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() {
+        synchronized(Companion) {
+            if(liveService === this) liveService=null
+            store.states().filter { it.status in ThorDownloadQueue.runningStatuses }.forEach { pause(this,it.jobId) }
+            active.values.forEach { worker -> worker.store.prefs.edit().putBoolean("pause",true).commit(); worker.connection?.disconnect() }
+            executor.shutdownNow()
+        }
+        super.onDestroy()
+    }
     private fun safeError(e: Exception): String = when(e) {
         is SecurityException -> "Storage access changed. Choose the ROMs folder again."
         is java.io.IOException -> "Connection or storage interrupted. Resume to retry; the partial file is saved."
         is IllegalArgumentException, is IllegalStateException -> e.message?.take(220) ?: "Download could not be verified."
         else -> "Download stopped. Your existing games are untouched."
     }
-    private fun checkpoint() { check(!store.prefs.getBoolean("pause",false) && !Thread.currentThread().isInterrupted) { "Paused." } }
     private data class Node(val uri: Uri,val name: String,val directory: Boolean,val size: Long)
+    private inner class Worker(val jobId: String) {
+    val store=ThorDownloadStore(this@ThorDownloadService,jobId)
+    @Volatile var connection: HttpsURLConnection? = null
+    private fun checkpoint() { check(!store.prefs.getBoolean("pause",false) && !Thread.currentThread().isInterrupted) { "Paused." } }
     private fun children(tree: Uri, parent: Uri): List<Node> {
         val parentId = D.getDocumentId(parent)
         val uri = D.buildChildDocumentsUriUsingTree(tree,parentId)
@@ -174,15 +207,19 @@ class ThorDownloadService : Service() {
         contentResolver.openInputStream(uri)?.use { input -> val b=ByteArray(256*1024); while(true) { checkpoint(); val n=input.read(b); if(n<0) break; if(n==0) continue; md.update(b,0,n);size+=n } } ?: error("Could not read back the downloaded file.")
         return size to md.digest().joinToString("") { "%02x".format(it) }
     }
-    private fun transfer() {
+    fun transfer() {
         val state=store.state() ?: error("No saved download."); val entry=state.entry; val tree=Uri.parse(state.target)
-        val root=D.buildDocumentUriUsingTree(tree,validateTree(tree)); val rootChildren=children(tree,root)
-        val entrySource=RomSyncPlan.Entry("${entry.platform}/${entry.fileName}",entry.sizeBytes,entry.sha256)
-        val action=RomSyncPlan.plan(listOf(entrySource),emptyList(),rootChildren.filter { it.directory }.map { it.name }.toSet()).single()
-        require(action.kind==RomSyncPlan.Kind.COPY) { action.reason }
-        val folder=action.destinationPath!!.substringBefore('/')
-        val dirs=rootChildren.filter { sameName(it.name,folder) }; require(dirs.size<=1 && dirs.all { it.directory }) { "Platform folder conflicts with an existing file." }
-        val parent=dirs.singleOrNull()?.uri ?: D.createDocument(contentResolver,root,D.Document.MIME_TYPE_DIR,folder) ?: error("Could not create platform folder.")
+        val (parent,folder)=synchronized(publicationLock) {
+            checkpoint()
+            val root=D.buildDocumentUriUsingTree(tree,validateTree(tree)); val rootChildren=children(tree,root)
+            val entrySource=RomSyncPlan.Entry("${entry.platform}/${entry.fileName}",entry.sizeBytes,entry.sha256)
+            val action=RomSyncPlan.plan(listOf(entrySource),emptyList(),rootChildren.filter { it.directory }.map { it.name }.toSet()).single()
+            require(action.kind==RomSyncPlan.Kind.COPY) { action.reason }
+            val folder=action.destinationPath!!.substringBefore('/')
+            val dirs=rootChildren.filter { sameName(it.name,folder) }; require(dirs.size<=1 && dirs.all { it.directory }) { "Platform folder conflicts with an existing file." }
+            val parent=dirs.singleOrNull()?.uri ?: D.createDocument(contentResolver,root,D.Document.MIME_TYPE_DIR,folder) ?: error("Could not create platform folder.")
+            parent to folder
+        }
         fun existing()=children(tree,parent).filter { sameName(it.name,entry.fileName) }
         val found=existing()
         if(found.isNotEmpty()) {
@@ -204,7 +241,7 @@ class ThorDownloadService : Service() {
         require(offset in 0..entry.sizeBytes) { "Partial file size is invalid." }
         if(offset<entry.sizeBytes) {
             checkpoint()
-            val routes=listOf("downloads-local","downloads").mapNotNull { name -> runCatching { ConnectionStore(this,name).snapshot() }.getOrNull()?.takeIf { it.url.isNotBlank() && it.token.isNotBlank() } }
+            val routes=listOf("downloads-local","downloads").mapNotNull { name -> runCatching { ConnectionStore(this@ThorDownloadService,name).snapshot() }.getOrNull()?.takeIf { it.url.isNotBlank() && it.token.isNotBlank() } }
             require(routes.isNotEmpty()) { "Connect a download server first." }
             var conn: HttpsURLConnection?=null
             for(route in routes) {
@@ -244,10 +281,14 @@ class ThorDownloadService : Service() {
         }
         checkpoint();store.update("verifying",offset,"Reading back and verifying SHA-256…")
         require(hash(partial)==(entry.sizeBytes to entry.sha256.lowercase())) { "Checksum mismatch. Partial preserved; the game was not installed." }
-        require(existing().isEmpty()) { "Destination appeared during transfer. Nothing overwritten." }
-        val result=D.renameDocument(contentResolver,partial,entry.fileName) ?: error("Could not finish the verified download.")
-        require(children(tree,parent).any { it.uri==result && it.name==entry.fileName }) { "Storage renamed the file unexpectedly. Check the platform folder." }
-        store.prefs.edit().remove("partial").commit()
+        synchronized(publicationLock) {
+            checkpoint()
+            require(existing().isEmpty()) { "Destination appeared during transfer. Nothing overwritten." }
+            val result=D.renameDocument(contentResolver,partial,entry.fileName) ?: error("Could not finish the verified download.")
+            require(children(tree,parent).any { it.uri==result && it.name==entry.fileName }) { "Storage renamed the file unexpectedly. Check the platform folder." }
+            check(store.prefs.edit().remove("partial").commit())
+        }
         store.update("completed",entry.sizeBytes,"Ready in $folder · SHA-256 verified.")
     }
+}
 }
