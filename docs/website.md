@@ -20,7 +20,7 @@ Desktop places the promise beside the handheld; mobile stacks them without hidin
 
 ## Hosting
 
-The production site is served as static files on a dedicated unprivileged Atlas container through a separate Cloudflare Tunnel. Only the static site is exposed. Tunnel tokens stay outside this repository. Builds and link validation run on the project's Atlas self-hosted CI runner.
+The production site is served as static files on a dedicated unprivileged homelab container through a separate Cloudflare Tunnel. Only the static site is exposed. Tunnel tokens stay outside this repository. Builds and link validation run on the project's self-hosted CI runner.
 
 A restricted service on the site container checks protected `main` every five minutes, builds the site with Node 22, validates internal links, and switches to a commit-addressed release directory. It uses public read-only Git access, so CI has no deployment credential or access to the site container. Main requires PRs and passing checks. The publisher runs as a dedicated non-root user, can write only its site/build directory, and cannot read the tunnel token. Previous releases remain available for rollback. Initial infrastructure provisioning is separate from this update loop.
 
