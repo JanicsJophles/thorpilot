@@ -4,7 +4,11 @@ Game care is a local experiment journal for improving how a game looks and plays
 
 ## Available now
 
-Baseline records the game, a symptom category (Texture, Flicker, Shadows, Stutter or Other), a repeatable scene and a before observation. Trial records the original setting and one proposed manual change. Result records Untested, Better, Same or Worse plus an after observation. Device and detected Azahar version accompany the note; version detection is not proof of the active game's settings.
+Baseline records the game, a symptom category (Texture, Flicker, Shadows, Stutter or Other), a repeatable scene and a before observation. Trial records the original setting and one proposed manual change. Result records Untested, Better, Same or Worse plus an after observation. Device and recorded emulator build accompany the note. **New experiment** starts an Azahar note; **New Eden experiment** starts an Eden note and detects its installed build. Baseline also records game revision and graphics driver/backend when known. Trial records Unknown, Per-game or Global scope. These are manual observations; package detection does not read the running game's configuration.
+
+**Reuse as untested trial** creates an unsaved draft from an existing note. It keeps the game, symptom, scene and proposed change, but assigns a new ID and records the source note. It resets the outcome, before/after observations, original setting, revision, driver and scope. The current device and detected emulator build replace the old environment. Record the current original setting again before testing. The source note stays unchanged until explicitly edited; a successful experiment is not promoted to a universal preset.
+
+Older records without an emulator identity retain their original Azahar meaning. Saved notes preserve their recorded build; a mismatch with the installed build is displayed rather than silently rewriting historical evidence. My Thor now offers an Eden app handoff alongside the existing emulator shortcuts. This opens Eden, not a particular game or its settings. Eden configuration writes, snapshots and automatic rollback are not supported.
 
 Use **Save local note** to persist an entry. Saved notes can be reopened and edited. The app keeps up to 30 most recently saved experiments in its private preferences; saving beyond that limit replaces the oldest note. Draft text and the selected step participate in Android activity-state restoration. Unsaved text is not a durable experiment record: force-stop, discarding the task, opening another note or starting a new experiment can discard it. Save the original setting before leaving to run a trial. These notes are local plaintext inside the Android app sandbox, with no network submission by this feature. They are not an emulator backup.
 
@@ -48,3 +52,17 @@ An adapter that applies individual experimental settings remains proposed. It ne
 Storage Access Framework access to a ROM directory does not grant another app's private files or an unrelated configuration directory. Providers differ in write/rename behavior; an adapter must establish its actual recovery guarantees rather than assume filesystem-atomic writes. For a build with only global settings, any temporary game profile must clearly disclose its global effect and restoration status. [Android document access](https://developer.android.com/training/data-storage/shared/documents-files).
 
 Game care remains a manual experiment journal. Neither saving a note nor selecting Better changes an emulator; configuration restoration requires its separate preview and confirmation.
+
+## Eden workflow verification
+
+The reusable-trial model has local JVM tests for identity, provenance, reset of prior results and environment, and preservation of the source record. Android instrumentation was executed successfully on a physical AYN Thor, including Eden persistence, legacy-note defaults and real panel callbacks for save/reopen/reuse. Touch navigation opened the Eden library through the app handoff; Cocoon remained visible on the lower display. The Eden form detected build `1f6734c`. This verifies the observed app path, not physical controller mapping, a full-game session or automatic configuration changes. Earlier manual Z-A results are separate evidence.
+
+## Inspect selected Eden configurations
+
+**Game care → Inspect Eden settings** reads a user-selected per-game `<16-digit title ID>.ini` and optional global `config.ini` through the Android document picker. It does not write files or retain their original bytes. Parsed values remain in memory until cleared or the activity is recreated. File names and SHA-256 fingerprints identify the selected copies; they do not prove that Eden currently uses them or that both came from the same installation. Android may block access to another app's data directory; an exported copy can be inspected but may be stale.
+
+Effective-value interpretation is limited to Eden Android v0.2.1 build `1f6734c`, the build inspected on the Thor. The initial allowlist contains GPU mode and resolution. Missing `use_global` flags inherit global settings; missing `default` flags use the compiled default. A true `default` flag overrides the adjacent stored value. Android's reviewed defaults are Fast GPU mode and 1× resolution. Without a selected global file, inherited values remain **Unknown**. Invalid flags, ambiguous duplicate keys, malformed documents, unsupported values and different emulator builds are rejected instead of being treated as recommendations.
+
+Sources: [v0.2.1 configuration reader](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/frontend_common/config.cpp), [compiled defaults](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/common/settings.h), [enum values](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/common/settings_enums.h).
+
+This is a read-only baseline aid. It does not detect a running game, import values into the journal, apply a suggested profile, back up Eden or provide rollback. Those capabilities require separate implementation and acceptance evidence.

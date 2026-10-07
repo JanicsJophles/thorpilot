@@ -74,6 +74,29 @@ object GameCareChecks {
             val edited = store.entries().single()
             check(edited.id == saved.id && edited.after == "Retested the same scene")
             check(edited.device == saved.device && edited.emulator == saved.emulator)
+            click("New Eden experiment")
+            field("Game").setText("Synthetic Eden game")
+            field("Game revision (if known)").setText("1.2")
+            field("Graphics driver / backend (if known)").setText("Synthetic driver")
+            click("Trial")
+            field("Original setting — your rollback").setText("Fast")
+            field("One setting to try manually").setText("Balanced")
+            check(has("Eden: keep the experiment specific"))
+            check(!has("Azahar: a possible graphics experiment"))
+            click("Save local note")
+            val eden = store.entries().first()
+            check(eden.emulatorId == "eden" && eden.driver == "Synthetic driver" && eden.gameRevision == "1.2")
+            click("Reuse as untested trial")
+            check(field("Game").text.toString() == eden.game)
+            check(field("Graphics driver / backend (if known)").text.isEmpty())
+            click("Trial")
+            check(field("Original setting — your rollback").text.isEmpty())
+            check(field("One setting to try manually").text.toString() == "Balanced")
+            check(store.entries().size == 2) // Reuse does not silently save a new note.
+            click("Save local note")
+            val reused = store.entries().first()
+            check(reused.sourceId == eden.id && reused.id != eden.id && reused.result == "Untested")
+            check(store.entries().first { it.id == eden.id } == eden)
             val malformed = GameCarePanel(context, store)
             malformed.restoreState(null)
             malformed.restoreState(Bundle().apply {
@@ -88,7 +111,7 @@ object GameCareChecks {
             check(sanitized.getString("trial").orEmpty().length <= 240)
             check(sanitized.getString("result") == "Untested")
             check(sanitized.getString("symptom") == "Texture")
-            check(store.entries().single() == edited)
+            check(store.entries().first { it.id == edited.id } == edited)
         } finally { prefs.edit().clear().commit() }
     }
     fun run(context: Context) {
@@ -99,6 +122,7 @@ object GameCareChecks {
             val store = GameCareStore(context, namespace)
             val original = store.save(GameCareEntry(id = "stable-id", game = " Test game ",
                 device = "Synthetic Android 13 device", emulator = "Synthetic emulator 1.0",
+                emulatorId = "eden", gameRevision = "1.2", driver = "Test driver", scope = "Per-game", sourceId = "source",
                 original = "Original setting", trial = "One changed setting"))
             check(original.game == "Test game" && original.updated > 0)
             val reloaded = GameCareStore(context, namespace).entries().single()
@@ -140,6 +164,8 @@ object GameCareChecks {
             check(store.entries().isEmpty())
             prefs.edit().putString("entries", """[null,1,{"id":"","game":"Missing id"},{"id":"bad","game":""},{"id":"valid","game":"Recovered","result":"Fabricated"}]""").commit()
             check(store.entries().single().result == "Untested")
+            check(store.entries().single().emulatorId == "azahar")
+            check(store.entries().single().scope == "Unknown")
             store.save(GameCareEntry(id = "recovered", game = "Fresh note"))
             check(GameCareStore(context, namespace).entries().first().game == "Fresh note")
         } finally { prefs.edit().clear().commit() }

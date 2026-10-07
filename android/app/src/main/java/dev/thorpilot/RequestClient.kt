@@ -30,11 +30,57 @@ object ServerAddress {
     }
 }
 
-data class GameRequest(val title: String, val platform: String, val status: String, val detail: String, val progress: Double?)
-data class RequestResult(val rows: List<GameRequest> = emptyList(), val message: String? = null) {
+data class GameRequest(
+    val title: String, val platform: String, val status: String, val detail: String, val progress: Double?,
+    val reviewRequired: Boolean = false, val clientStatus: String = "", val clientDetail: String = ""
+) {
+    val statusLabel: String get() = label(status)
+    fun description(): String = buildList {
+        if (detail.isNotBlank()) add(detail)
+        if (status == "imported") add("In your server library. This does not confirm a copy on your Thor or SD card.")
+        if (clientStatus.isNotBlank() && (clientStatus != status || clientDetail.trim() != detail.trim()))
+            add("Client: ${label(clientStatus)}${if (clientDetail.isBlank()) "" else " — $clientDetail"}")
+        if (reviewRequired || status in setOf("failed", "import-failed", "interrupted"))
+            add("Review this release in ROMarr before retrying.")
+    }.joinToString("\n")
+    companion object {
+        fun label(status: String): String = when (status) {
+            "searching" -> "Searching"
+            "wanted" -> "Waiting for a release"
+            "queued" -> "Queued"
+            "downloading", "grabbed" -> "Downloading"
+            "metadata" -> "Waiting for metadata / peers"
+            "stalled" -> "Stalled"
+            "paused" -> "Paused"
+            "verifying" -> "Verifying"
+            "repairing" -> "Repairing"
+            "extracting" -> "Extracting"
+            "processing" -> "Processing"
+            "downloaded" -> "Awaiting import"
+            "importing" -> "Importing"
+            "imported" -> "Imported to library"
+            "import-failed" -> "Import failed"
+            "failed" -> "Request failed"
+            "interrupted" -> "Interrupted"
+            "unknown", "" -> "Status unavailable"
+            else -> status // Preserve new server states rather than claiming success or failure.
+        }
+    }
+}
+data class RequestResult(
+    val rows: List<GameRequest> = emptyList(), val message: String? = null,
+    val clientWarnings: List<String> = emptyList()
+) {
     val isSuccess: Boolean get() = message == null
-    fun summary(): String = message ?: if (rows.isEmpty()) "No requests yet." else rows.joinToString("\n\n") {
-        "${it.title}\n${it.platform} · ${it.status}\n${it.detail}".trim()
+    fun summary(): String {
+        if (message != null) return message
+        val requests = if (rows.isEmpty()) "No requests yet." else rows.joinToString("\n\n") {
+            "${it.title}\n${it.platform} · ${it.statusLabel}\n${it.description()}".trim()
+        }
+        if (clientWarnings.isEmpty()) return requests
+        return "Download client needs attention\n" +
+            "These observations are separate from each request's search or import result.\n" +
+            clientWarnings.joinToString("\n") + "\n\n" + requests
     }
 }
 
@@ -86,16 +132,27 @@ class RequestClient(private val open: (URL) -> HttpsURLConnection = { it.openCon
         fun parse(body: String): RequestResult {
             if (body.toByteArray(Charsets.UTF_8).size > MAX_BYTES) return tooLarge()
             return try {
-                val items = JSONObject(body).getJSONArray("items")
+                val document = JSONObject(body)
+                val items = document.getJSONArray("items")
                 if (items.length() > MAX_ROWS) return tooLarge()
                 val rows = (0 until items.length()).map { i ->
                     val row = items.getJSONObject(i)
                     fun text(key: String, fallback: String = "", limit: Int = 500): String =
                         (row.opt(key) as? String)?.take(limit)?.filter { it == '\n' || it == '\t' || !it.isISOControl() } ?: fallback
                     val progress = (row.opt("progress") as? Number)?.toDouble()?.takeIf { it.isFinite() }?.coerceIn(0.0, 100.0)
-                    GameRequest(text("game", "Untitled", 200), text("platform", limit = 50), text("status", "unknown", 50), text("detail"), progress)
+                    GameRequest(text("game", "Untitled", 200), text("platform", limit = 50), text("status", "unknown", 50), text("detail"), progress, row.opt("review_required") == true, text("client_status", limit = 50), text("client_detail"))
                 }
-                RequestResult(rows)
+                val warnings = document.optJSONArray("client_warnings")
+                val clientWarnings = if (warnings == null) emptyList() else
+                    (0 until minOf(warnings.length(), 5)).mapNotNull { i ->
+                        val warning = warnings.optJSONObject(i) ?: return@mapNotNull null
+                        fun clean(value: Any?, limit: Int) = (value as? String)?.take(limit)
+                            ?.filter { it == '\n' || it == '\t' || !it.isISOControl() }.orEmpty()
+                        val client = clean(warning.opt("client"), 50)
+                        val detail = clean(warning.opt("detail"), 500)
+                        if (client.isBlank() || detail.isBlank()) null else "$client: $detail"
+                    }
+                RequestResult(rows, clientWarnings = clientWarnings)
             } catch (_: Exception) { RequestResult(message = "The server returned an incompatible request list. Check the game-requests adapter.") }
         }
     }
