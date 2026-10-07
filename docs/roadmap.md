@@ -25,7 +25,8 @@
 ## Then: complete useful workflows
 
 - [ ] Persisted request history and idempotent actions across reconnects
-- [ ] Verified resumable device transfers and storage grants
+- [x] Explicit storage grants and single-file verified, resumable downloads through an optional library gateway
+- [ ] Multi-file bundles, queued device transfers, and automatic retry policy
 - [ ] Save backup/restore adapters and conflict handling
 - [ ] Multidisc and region/revision-aware library organization
 - [ ] Version-specific emulator settings and reversible changes

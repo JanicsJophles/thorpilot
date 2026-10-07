@@ -9,7 +9,7 @@ android {
         applicationId = "dev.thorpilot"
         minSdk = 30
         targetSdk = 35
-        testInstrumentationRunner = "dev.thorpilot.DeviceChecks"
+        testInstrumentationRunner = providers.gradleProperty("thorpilotTestRunner").orElse("dev.thorpilot.DeviceChecks").get()
         versionCode = 1
         versionName = "0.1.0"
     }

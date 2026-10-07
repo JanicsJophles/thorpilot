@@ -9,3 +9,6 @@ local.properties
 build/
 artifacts/
 .kotlin/
+
+__pycache__/
+*.pyc

@@ -4,7 +4,7 @@
 
 A dual-screen emulation companion for Android handhelds, designed to live alongside Cocoon.
 
-**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, provides explicit emulator screen handoffs and a manual game-care journal, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
+**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, provides explicit emulator screen handoffs and a manual game-care journal, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM or tune emulators. An optional self-hosted library gateway supports verified, resumable downloads of files already in your library to the device. The browser concept chat uses scripted responses.
 
 ## Android app
 
@@ -19,7 +19,7 @@ adb shell am start -n dev.thorpilot/.MainActivity
 
 Launch Thorpilot from Cocoon like any other installed app. The main display shows the workspace; a presentation-capable secondary display shows companion actions. Display IDs are discovered at runtime. Release the companion from either screen, or leave the app to return the second screen to other apps. Single-screen devices keep every action in the main workspace. An explicit emulator handoff releases the companion screen and keeps it yielded until you reclaim it. Returning to an emulator opens its app; Thorpilot does not guarantee that a particular game resumes or provide a simultaneous gameplay overlay.
 
-Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native chat uses the optional custom `/api/v1/game-chat` endpoint, with bounded local conversation/draft persistence. A launcher widget and manual [Game care journal](docs/game-care.md) are available. Scoped SD-card access and automatic tuning remain future work.
+Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native chat uses the optional custom `/api/v1/game-chat` endpoint, with bounded local conversation/draft persistence. A launcher widget and manual [Game care journal](docs/game-care.md) are available. Scoped storage inventory, additive local transfers, and [Download to Thor](docs/device-downloads.md) are available. Automatic tuning remains future work.
 
 See [device testing](docs/device-testing.md) for the ADB development loop.
 
@@ -50,7 +50,7 @@ Cocoon remains the launcher. Thorpilot is an independent companion. Neither Coco
 
 Set `ROMARR_URL` and `ROMARR_API_KEY` in the **server environment** before starting. See `.env.example`; files are not auto-loaded. Keys never go to the browser. The server binds to localhost by default. Do not expose it publicly without adding authentication.
 
-The initial adapter targets the custom `/api/v1/game-requests` endpoint from our ROMarr integration, **not an endpoint guaranteed in upstream ROMarr**. A stock ROMarr adapter is planned. No hosted service or private homelab access is included with this project. The prototype only reads status; no download actions are exposed.
+The initial adapter targets the custom `/api/v1/game-requests` endpoint from our ROMarr integration, **not an endpoint guaranteed in upstream ROMarr**. A stock ROMarr adapter is planned. No hosted service or private homelab access is included with this project. The browser prototype only reads request status. Native device downloads use a separate, operator-configured [library gateway](companion/README.md); they do not acquire games from providers.
 
 ## Design and contribution
 
