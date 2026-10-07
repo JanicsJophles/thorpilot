@@ -20,6 +20,7 @@ class DeviceChecks : Instrumentation() {
             GameCareChecks.run(targetContext)
             GameSessionChecks.run(targetContext)
             RequestChecks.run()
+            RequestHistoryChecks.run(targetContext)
             ChatChecks.runChecks(targetContext)
             val store = ConnectionStore(targetContext, "connection-test")
             store.clear()
