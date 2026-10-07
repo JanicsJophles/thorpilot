@@ -48,6 +48,7 @@ class DeviceChecks : Instrumentation() {
             runOnMainSync {
                 try {
                 GameCareChecks.runPanel(activity)
+                SetupChecks.runPanel(activity)
                 WidgetChecks.run(targetContext)
                 fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup)
                     (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()

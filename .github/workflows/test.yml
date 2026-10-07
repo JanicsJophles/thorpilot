@@ -52,9 +52,14 @@ jobs:
         with:
           packages: platform-tools platforms;android-35 build-tools;35.0.0
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug
+      - run: ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease lintDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
           name: thorpilot-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thorpilot-release-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
