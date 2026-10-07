@@ -24,9 +24,10 @@
 
 ## Then: complete useful workflows
 
-- [ ] Persisted request history and idempotent actions across reconnects
+- [x] Connection-scoped native request snapshots, per-game status/progress, and imported-title handoff to download library search
+- [ ] Idempotent request actions across reconnects
 - [x] Explicit storage grants and verified, resumable downloads through an optional library gateway, with a durable queue and 1–3 parallel transfers
-- [ ] Multi-file bundles, queued device transfers, and automatic retry policy
+- [ ] Multi-file bundles and automatic retry policy
 - [ ] Save backup/restore adapters and conflict handling
 - [ ] Multidisc and region/revision-aware library organization
 - [ ] Version-specific emulator settings and reversible changes

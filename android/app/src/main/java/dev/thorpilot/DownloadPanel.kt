@@ -26,6 +26,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private var jobHost: LinearLayout? = null
     private var catalogHost: LinearLayout? = null
     private var query = ""
+    private var revealSearch = false
     private var internal = false
     private var entries = emptyList<ThorDownloadEntry>()
     private var message = "Connect your library gateway to bring games to this device."
@@ -39,12 +40,13 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private val tick = object : Runnable {
         override fun run() { if (!polling || closed) return; renderJob(); main.postDelayed(this, 1000) }
     }
+    fun search(title: String) { query = title; revealSearch = title.isNotBlank() }
     fun start() { if (!polling && !closed) { polling = true; main.post(tick) } }
     fun stop() { polling = false; main.removeCallbacks(tick) }
     fun close() { stop(); closed = true; generation++; worker.shutdownNow(); root = null; jobHost = null; catalogHost = null }
     fun createView(context: Context): View = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL; root = this; render()
-        if (entries.isEmpty() && store.url.isNotBlank() && !loading) refresh()
+        if ((entries.isEmpty() || revealSearch) && store.url.isNotBlank() && !loading) refresh()
     }
     private fun selected(): Uri? {
         val candidates = mutableListOf<Uri>()
@@ -132,6 +134,12 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
             hint = "Find a title or platform"; contentDescription = "Search download library"
             setTextColor(0xffd6e7ed.toInt()); setHintTextColor(0xffaebed0.toInt()); textSize = 14f
             isSingleLine = true; setText(query)
+            if (revealSearch) post {
+                if (revealSearch && isAttachedToWindow && !loading) {
+                    requestRectangleOnScreen(android.graphics.Rect(0, 0, width, dp(230)), true)
+                    revealSearch = false
+                }
+            }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { query = s?.toString().orEmpty(); renderCatalog() }
@@ -145,12 +153,9 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private fun renderCatalog() {
         val host = catalogHost ?: return
         host.removeAllViews()
-        val terms = query.trim().lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotEmpty() }
-        val filtered = entries.filter { entry ->
-            val searchable = "${entry.title} ${entry.platform}".lowercase(Locale.ROOT)
-            terms.all { it in searchable }
-        }
+        val filtered = entries.filter { entry -> LibrarySearch.matches(query, "${entry.title} ${entry.platform}") }
         label(host, "${filtered.size} of ${entries.size} games", 12f)
+        if (query.isNotBlank()) button(host, "Show all games") { query = ""; render() }
         if (filtered.size > 100) label(host, "Showing 100 of ${filtered.size} matches. Refine your search to find more.", 12f)
         if (filtered.isEmpty() && entries.isNotEmpty()) label(host, "No matching games. Try another title or platform.")
         val destination = selected()?.toString()

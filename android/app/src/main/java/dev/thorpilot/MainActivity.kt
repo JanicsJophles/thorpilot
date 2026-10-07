@@ -17,7 +17,6 @@ import android.view.WindowManager
 import android.widget.*
 import org.json.JSONObject
 import java.net.URL
-import java.util.concurrent.Executors
 import javax.net.ssl.HttpsURLConnection
 
 class MainActivity : Activity(), DisplayManager.DisplayListener {
@@ -40,12 +39,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private val navigation = mutableMapOf<String, Button>()
     private var companion: Presentation? = null
     private var page = "home"
-    private var requestText = "Connect your own ROMarr server to see your requests here."
+    private lateinit var requests: RequestPanel
     private var lowerEnabled = true
     private var active = false
-    private var loading = false
-    private var generation = 0
-    private val worker = Executors.newSingleThreadExecutor()
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -58,12 +54,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         romSync = RomSyncPanel(this) { destination -> pickRomFolder(destination) }
         deviceLibrary = DeviceLibraryPanel(this, { internal -> pickLibraryFolder(internal) }, { pkg -> launchPlayApp(pkg) })
         downloads = DownloadPanel(this) { internal -> pickDownloadFolder(internal) }
+        requests = RequestPanel(this, { go("settings") }) { title ->
+            downloads.search(title); go("downloads")
+        }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
-        val initialRequests = if (store.url.isBlank()) requestText else "Refresh to load requests from your connected server."
-        requestText = if (state?.getString("request-identity") == store.identity)
-            state.getString("requests") ?: initialRequests else initialRequests
         render()
     }
     private fun pickDownloadFolder(internal: Boolean) {
@@ -165,8 +161,6 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onSaveInstanceState(out: Bundle) {
         out.putBundle("game-care", gameCare.saveState())
         out.putString("page", page)
-        out.putString("requests", requestText)
-        out.putString("request-identity", store.identity)
         super.onSaveInstanceState(out)
     }
     override fun onStart() {
@@ -191,14 +185,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         super.onStop()
     }
     override fun onDestroy() {
-        generation++
         chatPanel.close()
         configSnapshots.close()
         edenInspector.close()
         romSync.close()
         deviceLibrary.close()
         downloads.close()
-        worker.shutdownNow()
+        requests.close()
         super.onDestroy()
     }
     override fun onDisplayAdded(id: Int) { showCompanion(); render() }
@@ -404,29 +397,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(utilityButton(this, "Game care · track a graphics experiment") { go("care") })
         body.addView(label(this, "Touch or D-pad to explore     •     Changes stay in your control", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }
-    private fun requestsPage() {
-        val heading = horizontal(this)
-        addWeighted(heading, label(this, "Your requests", 24f, true))
-        heading.addView(button(this, if (loading) "Refreshing…" else "Refresh") { fetchRequests() }.apply { isEnabled = !loading }, LinearLayout.LayoutParams(dp(this, 125), dp(this, 48)))
-        body.addView(heading)
-        body.addView(label(this, "Updates from your connected library server", 13f).apply { setTextColor(muted) })
-        if (store.url.isNotBlank()) body.addView(utilityButton(this, "Manage in ROMarr") {
-            try {
-                val address = ServerAddress.normalize(store.url) + "/#requests"
-                startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(address)))
-            } catch (_: Exception) { Toast.makeText(this, "Could not open your server in a browser.", Toast.LENGTH_LONG).show() }
-        })
-        body.addView(utilityButton(this, "Download imported games to Thor") { go("downloads") })
-        requestText.split("\n\n").forEach { request ->
-            val lines = request.lines()
-            val box = surface(this)
-            box.addView(label(this, lines.firstOrNull().orEmpty(), 19f, true))
-            if (lines.size > 1) box.addView(label(this, lines[1].replace(" · ", "  /  "), 13f).apply { setTextColor(iris) })
-            if (lines.size > 2) box.addView(label(this, lines.drop(2).joinToString("\n"), 14f).apply { setTextColor(muted) })
-            body.addView(box)
-        }
-        body.addView(label(this, "View-only for now. Manage requests in your ROMarr server.", 12f).apply { setTextColor(muted) })
-    }
+    private fun requestsPage() { body.addView(requests.createView(this)) }
     private fun devicePage() {
         val title = horizontal(this)
         addWeighted(title, label(this, "Meet your ${Build.MODEL}", 25f, true))
@@ -535,8 +506,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             try {
                 store.save(address.text.toString(), token.text.toString())
                 chatPanel.onConnectionChanged()
-                generation++
-                requestText = "Connection saved. Refresh to load requests."
+                requests.connectionChanged()
                 go("requests")
             } catch (e: Exception) {
                 AlertDialog.Builder(this).setTitle("Connection not saved")
@@ -545,28 +515,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             }
         })
         body.addView(button(this, "Forget connection") {
-            generation++; store.clear(); chatPanel.onConnectionChanged(); requestText = "Connect your own ROMarr server to see your requests here."; render()
+            store.clear(); chatPanel.onConnectionChanged(); requests.connectionChanged(); render()
         })
-    }
-    private fun fetchRequests() {
-        if (loading) return
-        if (store.url.isBlank()) { go("settings"); return }
-        val base = store.url
-        val token = try { store.token() } catch (_: Exception) {
-            requestText = "Saved key is unavailable. Save your connection again."; render(); return
-        }
-        val current = generation
-        loading = true; render()
-        worker.execute {
-            val result = RequestClient().fetch(base, token).summary()
-            runOnUiThread {
-                if (!isDestroyed) {
-                    loading = false
-                    if (generation == current) requestText = result
-                    if (page == "requests") render()
-                }
-            }
-        }
     }
     private fun launchTile(c: Context, title: String, kind: String, action: () -> Unit): View = LinearLayout(c).apply {
         orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
