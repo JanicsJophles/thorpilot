@@ -113,6 +113,14 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         stateListAnimator = null
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6) }
     }
+    private fun utilityButton(c: Context, value: String, action: () -> Unit) = button(c, value, action).apply {
+        textSize = 12f
+        background = android.graphics.drawable.InsetDrawable(
+            android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x3383decf), PilotGlass(dp(c, 16).toFloat()), null),
+            0, dp(c, 6), 0, dp(c, 6))
+        setPadding(dp(c, 12), dp(c, 2), dp(c, 12), dp(c, 2))
+        layoutParams = LinearLayout.LayoutParams(-2, dp(c, 48))
+    }
     private fun surface(c: Context, color: Int = paper) = column(c).apply {
         background = PilotGlass(dp(c, 24).toFloat())
         elevation = dp(c, 3).toFloat()
@@ -163,12 +171,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             insets
         }
         val header = horizontal(this)
-        header.addView(label(this, "Thorpilot", 22f, true), LinearLayout.LayoutParams(0, -2, 1f))
-        header.addView(label(this, if (companion?.isShowing == true) "●  Two screens, one workspace" else "●  Your handheld companion", 12f).apply { setTextColor(iris) })
-        root.addView(header)
+        header.addView(label(this, "Thorpilot", 20f, true).apply { setPadding(0, 0, dp(context, 18), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
         val nav = horizontal(this).apply {
             background = PilotGlass(dp(this@MainActivity, 23).toFloat())
-            setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4))
+            setPadding(dp(context, 3), 0, dp(context, 3), 0)
         }
         listOf("home" to "Workspace", "chat" to "Chat", "device" to "My Thor", "requests" to "Requests", "settings" to "Connection").forEach { (id, name) ->
             val item = button(this, name) { go(id) }.apply {
@@ -178,9 +184,15 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 setTextColor(if (page == id) iris else muted)
             }
             navigation[id] = item
-            nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 44), 1f))
+            nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
         }
-        root.addView(nav)
+        if (resources.configuration.screenWidthDp >= 620) {
+            header.addView(nav, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
+            root.addView(header)
+        } else {
+            root.addView(header)
+            root.addView(nav)
+        }
         val scroll = ScrollView(this).apply { isFillViewport = true; isVerticalScrollBarEnabled = false }
         body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(context, 18), 0, 0) }
         pageScroll = scroll
@@ -223,8 +235,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         status.addView(label(this, "${displays.displays.size} screens detected", 11f).apply { setTextColor(muted) })
         device.addView(status)
         addWeighted(dock, device, 1f, 18)
-        addWeighted(dock, button(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
-        addWeighted(dock, button(this, if (lowerEnabled) "Release lower screen" else "Use lower screen") { toggleCompanion() })
+        addWeighted(dock, utilityButton(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
+        addWeighted(dock, utilityButton(this, if (lowerEnabled) "Release lower screen" else "Use lower screen") { toggleCompanion() })
         body.addView(dock)
         body.addView(label(this, "Touch or D-pad to explore     •     Device tuning is still being built", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }
@@ -359,7 +371,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         header.addView(label(c, "Companion", 12f).apply { setTextColor(iris) })
         content.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) })
         if (page == "chat") {
-            content.addView(button(c, "Back to workspace") { go("home") })
+            content.addView(utilityButton(c, "Back to workspace") { go("home") })
             content.addView(chatPanel.createView(c, compact = true))
         } else {
         val shortcuts = horizontal(c).apply { gravity = Gravity.CENTER }
@@ -371,11 +383,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         addWeighted(second, launchTile(c, "Connection", "settings") { go("settings") })
         content.addView(second, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) })
         }
-        content.addView(button(c, "Release this screen") {
+        content.addView(utilityButton(c, "Release this screen") {
             lowerEnabled = false
             getPreferences(MODE_PRIVATE).edit().putBoolean("lower", false).apply()
             showCompanion(); render()
-        }.apply { background = PilotGlass(dp(c, 23).toFloat()); textSize = 12f })
+        }.apply { layoutParams = LinearLayout.LayoutParams(dp(c, 190), dp(c, 48)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(c, 6) } })
         val scroll = ScrollView(c).apply { setBackgroundColor(Color.TRANSPARENT); isFillViewport = true; addView(content) }
         panel.setContentView(scroll)
         panel.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(mist))

@@ -60,14 +60,18 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         val c = root.context
         val compact = root.tag == true
         val heading = LinearLayout(c).apply { gravity = Gravity.CENTER_VERTICAL }
-        heading.addView(text(c, if (compact) "Let’s find a game" else "Find your next favorite", 23f, true), LinearLayout.LayoutParams(0, -2, 1f))
+        heading.addView(text(c, if (compact) "Let’s find a game" else "Find your next favorite", if (compact) 20f else 23f, true), LinearLayout.LayoutParams(0, -2, 1f))
         if (messages.isNotEmpty()) heading.addView(action(c, "Clear") {
             android.app.AlertDialog.Builder(activity).setTitle("Clear this conversation?")
                 .setMessage("This removes the conversation saved on this handheld.")
                 .setNegativeButton("Keep", null).setPositiveButton("Clear") { _, _ ->
                     if (!busy) { messages = emptyList(); draft = ""; error = null; history.clear(); refresh() }
                 }.show()
-        }.apply { isEnabled = !busy; layoutParams = LinearLayout.LayoutParams(-2, -2) })
+        }.apply {
+            isEnabled = !busy; textSize = 12f
+            background = android.graphics.drawable.InsetDrawable(surface(c, Color.rgb(16, 32, 46)), 0, dp(c, 7), 0, dp(c, 7))
+            layoutParams = LinearLayout.LayoutParams(dp(c, 70), dp(c, 48))
+        })
         root.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 12); bottomMargin = dp(c, 6) })
         root.addView(text(c, "Game discovery through your server. Suggestions never start a download.", 13f).apply { setTextColor(muted) })
         if (store.url.isBlank()) {
@@ -116,7 +120,10 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             })
         }
         root.addView(input, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 10); bottomMargin = dp(c, 8) })
-        root.addView(action(c, if (busy) "Thinking…" else "Send message") { send() }.apply { isEnabled = !busy })
+        root.addView(action(c, if (busy) "Thinking…" else "Send message") { send() }.apply {
+            isEnabled = !busy
+            layoutParams = LinearLayout.LayoutParams(dp(c, 170), dp(c, 48)).apply { gravity = Gravity.END; topMargin = dp(c, 4); bottomMargin = dp(c, 4) }
+        })
         if (!busy && messages.lastOrNull()?.role == "user") root.addView(action(c, "Retry last message") { submit(messages) })
     }
     private fun send() {
