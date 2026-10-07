@@ -35,7 +35,7 @@ adb shell am instrument -w dev.thorpilot.test/dev.thorpilot.DeviceChecks
 
 The small instrumentation runner prints PASS or FAIL. It uses a separate test preference file and checks HTTPS URL validation, actual Android Keystore encryption/round-trip, clearing the connection, device inventory, and native navigation. It does not alter the user's saved connection. CI builds the test APK; running it requires a connected device or emulator.
 
-First hardware pass: AYN Thor on Android 13, two internal displays. Both rendered; secondary-display touches changed the main workspace. Releasing the presentation persisted across restart. Going Home removed the presentation and returning restored it when enabled. Keystore and navigation checks passed. Live server connectivity, physical controller input, rotation, other Android versions, and emulator launch/resume compatibility still need dedicated testing.
+First hardware pass: AYN Thor on Android 13, two internal displays. Both rendered; secondary-display touches changed the main workspace. Releasing the presentation persisted across restart. Going Home removed the presentation and returning restored it when enabled. Keystore and navigation checks passed. Live request loading and server-backed chat with catalog suggestions were verified on hardware. Physical controller input, rotation, other Android versions, and emulator launch/resume compatibility still need dedicated testing.
 
 ## Repeatable workstation loop
 

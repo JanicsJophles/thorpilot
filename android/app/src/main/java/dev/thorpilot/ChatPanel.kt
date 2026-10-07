@@ -26,7 +26,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     private val roots = mutableListOf<WeakReference<LinearLayout>>()
     private val ink = Color.rgb(242, 246, 252)
     private val muted = Color.rgb(175, 193, 208)
-    private val iris = Color.rgb(131, 222, 207)
+    private val iris = Color.rgb(108, 247, 208)
 
     fun createView(context: Context, compact: Boolean = false): View = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -37,7 +37,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     }
     fun close() { closed = true; worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
-    private fun surface(c: Context, color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat() }
+    private fun surface(c: Context, color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0x304faaa7) }
     private fun text(c: Context, value: String, size: Float = 15f, bold: Boolean = false) = TextView(c).apply {
         text = value; textSize = size; setTextColor(ink)
         if (bold) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -46,7 +46,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     private fun action(c: Context, value: String, callback: () -> Unit) = Button(c).apply {
         text = value; isAllCaps = false; textSize = 14f; setTextColor(iris)
         minHeight = dp(c, 48); setOnClickListener { callback() }
-        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x3383decf), surface(c, Color.rgb(46, 65, 87)), null)
+        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x3383decf), surface(c, Color.rgb(29, 49, 73)), null)
         stateListAnimator = null
         setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6); bottomMargin = dp(c, 4) }
@@ -67,7 +67,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                 .setNegativeButton("Keep", null).setPositiveButton("Clear") { _, _ ->
                     if (!busy) { messages = emptyList(); draft = ""; error = null; history.clear(); refresh() }
                 }.show()
-        }.apply { isEnabled = !busy })
+        }.apply { isEnabled = !busy; layoutParams = LinearLayout.LayoutParams(-2, -2) })
         root.addView(heading)
         root.addView(text(c, "Game discovery through your server. Suggestions never start a download.", 13f).apply { setTextColor(muted) })
         if (store.url.isBlank()) {
@@ -84,9 +84,9 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         for (message in if (compact) emptyList() else messages.takeLast(12)) {
             val block = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(c, 16), dp(c, 12), dp(c, 16), dp(c, 12))
-                background = surface(c, if (message.role == "user") Color.rgb(46, 65, 87) else Color.rgb(28, 42, 58))
-                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) }
+                setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
+                background = surface(c, if (message.role == "user") Color.rgb(29, 49, 73) else Color.rgb(10, 22, 34))
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 16) }
             }
             block.addView(text(c, if (message.role == "user") "You" else "Thorpilot", 12f, true).apply { setTextColor(muted) })
             block.addView(text(c, message.content))
@@ -102,8 +102,8 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         val input = EditText(c).apply {
             hint = "Tell me what you like…"; contentDescription = "Message Thorpilot"
             textSize = 15f; setTextColor(ink); setHintTextColor(muted); setText(draft)
-            background = surface(c, Color.rgb(22, 34, 49))
-            setPadding(dp(c, 16), dp(c, 14), dp(c, 16), dp(c, 14))
+            background = surface(c, Color.rgb(5, 14, 24))
+            setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
             minLines = 2; maxLines = 4
             imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -115,9 +115,9 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
-        root.addView(input, LinearLayout.LayoutParams(-1, -2))
+        root.addView(input, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 10); bottomMargin = dp(c, 8) })
         root.addView(action(c, if (busy) "Thinking…" else "Send message") { send() }.apply { isEnabled = !busy })
-        if (error != null && messages.lastOrNull()?.role == "user") root.addView(action(c, "Retry last message") { submit(messages) }.apply { isEnabled = !busy })
+        if (!busy && messages.lastOrNull()?.role == "user") root.addView(action(c, "Retry last message") { submit(messages) })
     }
     private fun send() {
         if (busy || draft.isBlank()) return

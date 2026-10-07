@@ -38,7 +38,9 @@ class DeviceChecks : Instrumentation() {
 
             val activity = startActivitySync(Intent(targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             waitForIdleSync()
+            var uiFailure: Throwable? = null
             runOnMainSync {
+                try {
                 fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup)
                     (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()
                 fun click(text: String) {
@@ -56,8 +58,10 @@ class DeviceChecks : Instrumentation() {
                 click("Connection")
                 check(contains("Save connection"))
                 click("Workspace")
-                check(contains("displays detected"))
+                check(contains(android.os.Build.MODEL))
+                } catch (failure: Throwable) { uiFailure = failure }
             }
+            uiFailure?.let { throw it }
             finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, and native navigation\n") })
         } catch (e: Throwable) {
             finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAIL: ${e.javaClass.simpleName}: ${e.message} at ${e.stackTrace.firstOrNull()}\n") })

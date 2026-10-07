@@ -22,8 +22,8 @@ import javax.net.ssl.HttpsURLConnection
 
 class MainActivity : Activity(), DisplayManager.DisplayListener {
     private val ink = Color.rgb(242, 246, 252)
-    private val iris = Color.rgb(131, 222, 207)
-    private val mist = Color.rgb(24, 43, 59)
+    private val iris = Color.rgb(108, 247, 208)
+    private val mist = Color.rgb(3, 10, 17)
     private lateinit var displays: DisplayManager
     private lateinit var store: ConnectionStore
     private lateinit var chatPanel: ChatPanel
@@ -79,8 +79,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onDisplayChanged(id: Int) { showCompanion() }
 
     private val muted = Color.rgb(174, 192, 208)
-    private val paper = Color.argb(235, 27, 41, 56)
-    private val lavender = Color.rgb(46, 62, 86)
+    private val paper = Color.argb(245, 12, 23, 35)
+    private val lavender = Color.rgb(25, 40, 62)
     private fun dp(c: Context, value: Int) = (value * c.resources.displayMetrics.density).toInt()
     private fun shape(color: Int, radius: Float = 24f) = GradientDrawable().apply {
         setColor(color); cornerRadius = radius * resources.displayMetrics.density
@@ -114,7 +114,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6) }
     }
     private fun surface(c: Context, color: Int = paper) = column(c).apply {
-        background = shape(color)
+        background = PilotGlass(dp(c, 24).toFloat())
+        elevation = dp(c, 3).toFloat()
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) }
     }
     private fun horizontal(c: Context) = LinearLayout(c).apply {
@@ -141,7 +142,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         navigation.forEach { (id, item) ->
             item.isSelected = page == id
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), shape(if (page == id) Color.rgb(52, 80, 91) else Color.TRANSPARENT, 14f), null)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) PilotGlass(dp(this@MainActivity, 16).toFloat(), true) else shape(Color.TRANSPARENT, 16f), null)
             item.setTextColor(if (page == id) iris else muted)
         }
         body.removeAllViews()
@@ -162,18 +163,18 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             insets
         }
         val header = horizontal(this)
-        header.addView(label(this, "Thorpilot", 27f, true), LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(label(this, "Thorpilot", 22f, true), LinearLayout.LayoutParams(0, -2, 1f))
         header.addView(label(this, if (companion?.isShowing == true) "●  Two screens, one workspace" else "●  Your handheld companion", 12f).apply { setTextColor(iris) })
         root.addView(header)
         val nav = horizontal(this).apply {
-            background = shape(Color.argb(225, 19, 29, 41), 18f)
+            background = PilotGlass(dp(this@MainActivity, 23).toFloat())
             setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4))
         }
         listOf("home" to "Workspace", "chat" to "Chat", "device" to "My Thor", "requests" to "Requests", "settings" to "Connection").forEach { (id, name) ->
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), shape(if (page == id) Color.rgb(52, 80, 91) else Color.TRANSPARENT, 14f), null)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) PilotGlass(dp(this@MainActivity, 16).toFloat(), true) else shape(Color.TRANSPARENT, 16f), null)
                 setTextColor(if (page == id) iris else muted)
             }
             navigation[id] = item
@@ -181,7 +182,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
         root.addView(nav)
         val scroll = ScrollView(this).apply { isFillViewport = true; isVerticalScrollBarEnabled = false }
-        body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(context, 14), 0, 0) }
+        body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(context, 18), 0, 0) }
         pageScroll = scroll
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -194,33 +195,38 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     private fun workspacePage() {
         val wide = resources.configuration.screenWidthDp >= 620
-        val layout = LinearLayout(this).apply { orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL }
-        val welcome = surface(this, Color.argb(205, 30, 52, 66))
-        val hello = horizontal(this)
-        val emblem = ImageView(this).apply { setImageDrawable(PilotEmblem()); contentDescription = "Thorpilot compass" }
-        hello.addView(emblem, LinearLayout.LayoutParams(dp(this, 86), dp(this, 86)).apply { marginEnd = dp(this@MainActivity, 14) })
-        hello.addView(label(this, "Good games.\nGreat company.", 29f, true), LinearLayout.LayoutParams(0, -2, 1f))
-        welcome.addView(hello)
-        welcome.addView(label(this, "A copilot for your next adventure.", 16f).apply { setTextColor(muted) })
-        welcome.addView(button(this, "Find my next game") { go("chat") }.apply { setTextColor(mist); background = shape(iris, 18f) })
-        welcome.addView(label(this, "Discover together. Keep your library close.", 12f).apply { setTextColor(muted) })
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val device = surface(this)
-        val title = horizontal(this)
-        addWeighted(title, label(this, Build.MODEL, 21f, true))
-        title.addView(label(this, "● Ready", 12f).apply { setTextColor(Color.rgb(125, 218, 177)) })
-        device.addView(title)
-        device.addView(label(this, "${displays.displays.size} displays detected • Android ${Build.VERSION.RELEASE}", 14f).apply { setTextColor(muted) })
-        device.addView(button(this, if (lowerEnabled) "Release companion screen" else "Use companion screen") { toggleCompanion() })
-        actions.addView(device)
-        val library = surface(this)
-        library.addView(label(this, "Your library, within reach", 19f, true))
-        library.addView(button(this, if (store.url.isBlank()) "Connect ROMarr" else "See my requests") { go(if (store.url.isBlank()) "settings" else "requests") })
-        actions.addView(library)
-        if (wide) { addWeighted(layout, welcome, 1.05f, 14); addWeighted(layout, actions) }
-        else { layout.addView(welcome); layout.addView(actions) }
-        body.addView(layout)
-        body.addView(label(this, "D-pad to move  •  A to select       Game tuning is still being built.", 12f).apply { setTextColor(muted) })
+        val scene = LinearLayout(this).apply {
+            orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(context, 12), 0, dp(context, 26), dp(context, 18))
+        }
+        val artwork = ImageView(this).apply { setImageDrawable(PilotJourney()); contentDescription = "A handheld drifting around a little moon" }
+        if (wide) scene.addView(artwork, LinearLayout.LayoutParams(0, dp(this, 166), 1.05f))
+        else scene.addView(artwork, LinearLayout.LayoutParams(-1, dp(this, 175)))
+        val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 12), 0, 0, 0) }
+        introduction.addView(label(this, "Your next adventure\nstarts with a conversation.", 24f, true))
+        introduction.addView(label(this, "Find a hidden gem. Check your library.\nLet’s make more time for play.", 14f).apply { setTextColor(muted) })
+        introduction.addView(button(this, "Find my next game") { go("chat") }.apply {
+            setTextColor(mist); background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xffabffe0.toInt(), iris)).apply { cornerRadius = dp(this@MainActivity, 22).toFloat() }
+        }, LinearLayout.LayoutParams(dp(this, 230), dp(this, 48)).apply { topMargin = dp(this@MainActivity, 10) })
+        if (wide) scene.addView(introduction, LinearLayout.LayoutParams(0, -2, 1f)) else scene.addView(introduction)
+        body.addView(scene)
+        val dock = horizontal(this).apply {
+            background = PilotGlass(dp(this@MainActivity, 24).toFloat())
+            setPadding(dp(context, 16), dp(context, 12), dp(context, 16), dp(context, 12))
+            elevation = dp(context, 4).toFloat()
+        }
+        val device = horizontal(this)
+        device.addView(ImageView(this).apply { setImageDrawable(PilotIcon("device")) }, LinearLayout.LayoutParams(dp(this, 46), dp(this, 46)).apply { marginEnd = dp(this@MainActivity, 10) })
+        val status = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        status.addView(label(this, Build.MODEL, 14f, true))
+        status.addView(label(this, "${displays.displays.size} screens detected", 11f).apply { setTextColor(muted) })
+        device.addView(status)
+        addWeighted(dock, device, 1f, 18)
+        addWeighted(dock, button(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
+        addWeighted(dock, button(this, if (lowerEnabled) "Release lower screen" else "Use lower screen") { toggleCompanion() })
+        body.addView(dock)
+        body.addView(label(this, "Touch or D-pad to explore     •     Device tuning is still being built", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }
     private fun requestsPage() {
         val heading = horizontal(this)
@@ -321,15 +327,19 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             }
         }
     }
-    private fun dockTile(c: Context, title: String, glyph: String, color: Int, action: () -> Unit): Button = button(c, "$glyph\n$title", action).apply {
-        textSize = 17f
-        contentDescription = title
-        minHeight = dp(c, 92)
-        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x44ffffff),
-            GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(color, Color.rgb(Color.red(color)*2/3, Color.green(color)*2/3, Color.blue(color)*2/3))).apply {
-                cornerRadius = dp(c, 23).toFloat(); setStroke(dp(c, 1), 0x55ffffff)
-            }, null)
-        elevation = dp(c, 3).toFloat()
+    private fun launchTile(c: Context, title: String, kind: String, action: () -> Unit): View = LinearLayout(c).apply {
+        orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+        isClickable = true; isFocusable = true; contentDescription = title
+        setPadding(dp(c, 8), dp(c, 8), dp(c, 8), dp(c, 12))
+        background = android.graphics.drawable.StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_focused), PilotGlass(dp(c, 24).toFloat(), true))
+            addState(intArrayOf(android.R.attr.state_pressed), PilotGlass(dp(c, 24).toFloat(), true))
+            addState(intArrayOf(), android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        }
+        addView(ImageView(c).apply { setImageDrawable(PilotIcon(kind)); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(c, 96), dp(c, 96)))
+        addView(label(c, title, 13f, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 9), 0, 0); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO })
+        setOnClickListener { action() }
+        setOnFocusChangeListener { view, focused -> view.scaleX = if (focused) 1.035f else 1f; view.scaleY = if (focused) 1.035f else 1f }
     }
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
@@ -345,31 +355,27 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         val c = panel.context
         val content = column(c).apply { background = PilotWallpaper() }
         val header = horizontal(c)
-        addWeighted(header, label(c, "Thorpilot", 24f, true))
+        addWeighted(header, label(c, "Thorpilot", 19f, true))
         header.addView(label(c, "Companion", 12f).apply { setTextColor(iris) })
-        content.addView(header)
+        content.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) })
         if (page == "chat") {
             content.addView(button(c, "Back to workspace") { go("home") })
             content.addView(chatPanel.createView(c, compact = true))
         } else {
-        val greeting = horizontal(c)
-        greeting.addView(ImageView(c).apply { setImageDrawable(PilotEmblem()); contentDescription = "Thorpilot compass" }, LinearLayout.LayoutParams(dp(c, 68), dp(c, 68)))
-        addWeighted(greeting, label(c, "Where to next?", 26f, true))
-        content.addView(greeting)
-        val shortcuts = horizontal(c)
-        addWeighted(shortcuts, dockTile(c, "My Thor", "◈", Color.rgb(92, 127, 206)) { go("device") }, 1f, 10)
-        addWeighted(shortcuts, dockTile(c, "Requests", "↓", Color.rgb(151, 102, 203)) { go("requests") })
-        content.addView(shortcuts)
-        val second = horizontal(c)
-        addWeighted(second, dockTile(c, "Open chat", "✦", Color.rgb(43, 148, 136)) { go("chat") }, 1f, 10)
-        addWeighted(second, dockTile(c, "Connection settings", "⚙", Color.rgb(152, 105, 77)) { go("settings") })
-        content.addView(second)
+        val shortcuts = horizontal(c).apply { gravity = Gravity.CENTER }
+        addWeighted(shortcuts, launchTile(c, "Find a game", "chat") { go("chat") }, 1f, 16)
+        addWeighted(shortcuts, launchTile(c, "My Thor", "device") { go("device") })
+        content.addView(shortcuts, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) })
+        val second = horizontal(c).apply { gravity = Gravity.CENTER }
+        addWeighted(second, launchTile(c, "Requests", "requests") { go("requests") }, 1f, 16)
+        addWeighted(second, launchTile(c, "Connection", "settings") { go("settings") })
+        content.addView(second, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) })
         }
         content.addView(button(c, "Release this screen") {
             lowerEnabled = false
             getPreferences(MODE_PRIVATE).edit().putBoolean("lower", false).apply()
             showCompanion(); render()
-        }.apply { background = shape(Color.rgb(35, 47, 64), 15f) })
+        }.apply { background = PilotGlass(dp(c, 23).toFloat()); textSize = 12f })
         val scroll = ScrollView(c).apply { setBackgroundColor(Color.TRANSPARENT); isFillViewport = true; addView(content) }
         panel.setContentView(scroll)
         panel.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(mist))
