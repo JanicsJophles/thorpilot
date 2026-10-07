@@ -53,3 +53,21 @@ A CIA is an installation package, so selecting its location is not equivalent
 to launching a playable 3DS cartridge file. Use Azahar's installation flow
 before launching the installed title. Keep emulator saves and save states
 separate from ROM copying; the sync never moves or replaces them.
+
+### Physical launcher check
+
+On the tested Thor, Cocoon retained the existing internal DS folder and
+MelonDualDS player while adding the SD DS folder. A rescan of DS/GBA added
+entries without removing any. Pokémon Diamond launched through Cocoon into
+MelonDualDS using a verified SD-card content URI and rendered its intro; the
+test exited without starting or saving a game. This establishes the tested
+launcher path, not full-game compatibility. The existing SoulSilver ROM,
+save and save state retained their pre-transfer hashes afterward.
+
+If identical game files exist on both storage roots, Cocoon may list both.
+The sync does not delete either copy to hide duplicates. GBA folder discovery
+alone does not install or select a GBA emulator.
+
+Cocoon remains responsible for artwork and metadata scraping. Configure its
+providers there and retain existing credentials; this inventory does not
+copy API keys or create a second scraping pipeline.
