@@ -30,6 +30,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var gameSession: GameSession
     private lateinit var gameCare: GameCarePanel
     private lateinit var configSnapshots: ConfigSnapshotPanel
+    private lateinit var edenInspector: EdenInspectorPanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -50,6 +51,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         gameSession = GameSession(this)
         gameCare = GameCarePanel(this).apply { restoreState(state?.getBundle("game-care")) }
         configSnapshots = ConfigSnapshotPanel(this) { pickConfiguration() }
+        edenInspector = EdenInspectorPanel(this) { global -> pickEdenConfig(global) }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
@@ -57,6 +59,14 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requestText = if (state?.getString("request-identity") == store.identity)
             state.getString("requests") ?: initialRequests else initialRequests
         render()
+    }
+    private fun pickEdenConfig(global: Boolean) {
+        val request = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE); type = "*/*"
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try { startActivityForResult(request, if (global) 4103 else 4102) }
+        catch (_: RuntimeException) { Toast.makeText(this, "Could not open the file picker.", Toast.LENGTH_LONG).show() }
     }
     private fun pickConfiguration() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -72,6 +82,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode in 4102..4103 && resultCode == RESULT_OK) {
+            val selected = data?.data ?: return
+            if (selected.scheme == "content") { go("eden-inspector"); edenInspector.accept(selected, requestCode == 4103) }
+            return
+        }
         if (requestCode != 4101 || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         if (uri.scheme != "content") {
@@ -121,6 +136,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         generation++
         chatPanel.close()
         configSnapshots.close()
+        edenInspector.close()
         worker.shutdownNow()
         super.onDestroy()
     }
@@ -198,10 +214,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id || (page in setOf("care", "snapshots") && id == "device")
+            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id || (page in setOf("care", "snapshots") && id == "device")) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
@@ -215,7 +231,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 }
                 body.addView(actions)
                 body.addView(utilityButton(this, "Configuration snapshots") { go("snapshots") })
+                body.addView(utilityButton(this, "Inspect Eden settings") { go("eden-inspector") })
                 body.addView(gameCare.createView(this))
+            }
+            "eden-inspector" -> {
+                body.addView(utilityButton(this, "Back to Game care") { go("care") })
+                body.addView(edenInspector.createView(this))
             }
             "snapshots" -> {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
@@ -244,8 +265,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id || (page in setOf("care", "snapshots") && id == "device")) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector") && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))

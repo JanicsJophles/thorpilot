@@ -80,3 +80,9 @@ The isolated suite also exercises stale previews, changes during recovery captur
 On the same Thor, Pokémon Legends: Z-A showed flashing building textures in the opening Lumiose station scene with Eden v0.2.1 (build `1f6734c`), Turnip `26.3.0-T30-1.4.359`, 1× resolution and Fast GPU mode. The device owner observed the flicker even while standing still. Changing only the game's GPU mode to **Balanced** saved a per-game override (`gpu_accuracy=1`, global inheritance disabled). After resuming the scene, the owner reported that the flashing stopped and the scene looked much better.
 
 This is a user-confirmed result for that scene, not a full-game compatibility claim or a performance benchmark. Battles, other areas and long sessions remain untested. The change was made manually in Eden; Thorpilot does not yet apply or restore Eden profiles. The in-app configuration snapshot adapter currently supports Azahar only.
+
+## Eden read-only inspector acceptance
+
+On 2026-10-07, a physical Thor selected two synthetic INIs through Android's real document picker. The per-game file explicitly selected Balanced GPU mode and inherited resolution. Before selecting global configuration, resolution showed Unknown. The global fixture deliberately paired `resolution_setup=12` with `resolution_setup\\default=true`; the inspector correctly displayed 1× from the reviewed compiled default rather than the stale raw number. GPU mode remained Balanced from the per-game override. Clear removed both selections. These were fixtures under `Documents/ThorpilotTest/EdenInspection`, not live emulator configuration or a game-performance test.
+
+Local JVM tests cover default precedence, global inheritance, missing global context, exact-byte hashes, supported-build boundaries, malformed/oversized documents, duplicate keys and invalid values. The inspector does not write files.

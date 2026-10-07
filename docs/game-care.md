@@ -56,3 +56,13 @@ Game care remains a manual experiment journal. Neither saving a note nor selecti
 ## Eden workflow verification
 
 The reusable-trial model has local JVM tests for identity, provenance, reset of prior results and environment, and preservation of the source record. Android instrumentation was executed successfully on a physical AYN Thor, including Eden persistence, legacy-note defaults and real panel callbacks for save/reopen/reuse. Touch navigation opened the Eden library through the app handoff; Cocoon remained visible on the lower display. The Eden form detected build `1f6734c`. This verifies the observed app path, not physical controller mapping, a full-game session or automatic configuration changes. Earlier manual Z-A results are separate evidence.
+
+## Inspect selected Eden configurations
+
+**Game care → Inspect Eden settings** reads a user-selected per-game `<16-digit title ID>.ini` and optional global `config.ini` through the Android document picker. It does not write files or retain their original bytes. Parsed values remain in memory until cleared or the activity is recreated. File names and SHA-256 fingerprints identify the selected copies; they do not prove that Eden currently uses them or that both came from the same installation. Android may block access to another app's data directory; an exported copy can be inspected but may be stale.
+
+Effective-value interpretation is limited to Eden Android v0.2.1 build `1f6734c`, the build inspected on the Thor. The initial allowlist contains GPU mode and resolution. Missing `use_global` flags inherit global settings; missing `default` flags use the compiled default. A true `default` flag overrides the adjacent stored value. Android's reviewed defaults are Fast GPU mode and 1× resolution. Without a selected global file, inherited values remain **Unknown**. Invalid flags, ambiguous duplicate keys, malformed documents, unsupported values and different emulator builds are rejected instead of being treated as recommendations.
+
+Sources: [v0.2.1 configuration reader](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/frontend_common/config.cpp), [compiled defaults](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/common/settings.h), [enum values](https://git.eden-emu.dev/eden-emu/eden/src/tag/v0.2.1/src/common/settings_enums.h).
+
+This is a read-only baseline aid. It does not detect a running game, import values into the journal, apply a suggested profile, back up Eden or provide rollback. Those capabilities require separate implementation and acceptance evidence.
