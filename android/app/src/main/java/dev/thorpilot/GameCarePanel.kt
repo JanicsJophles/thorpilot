@@ -69,6 +69,10 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         setPadding(0, dp(c, 5), 0, dp(c, 8))
     }
     fun createView(context: Context): View = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; render(this) }
+    private fun showStart(root: LinearLayout) {
+        render(root)
+        root.post { root.requestRectangleOnScreen(android.graphics.Rect(0, 0, root.width, dp(root.context, 60)), false) }
+    }
     private fun render(root: LinearLayout) {
         val c = root.context
         root.removeAllViews()
@@ -175,14 +179,14 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         }
         if (draft.updated > 0) button(root, "Reuse as untested trial") {
             draft = draft.newTrial(Build.MODEL, emulatorVersion(draft.emulatorId))
-            step = 0; message = "New draft. Record the current driver, revision, scope and original setting before testing."; render(root)
+            step = 0; message = "New draft. Record the current driver, revision, scope and original setting before testing."; showStart(root)
         }
         root.addView(label(c, "Your experiments", 18f, true))
-        button(root, "New experiment") { draft = fresh(); step = 0; message = ""; render(root) }
-        button(root, "New Eden experiment") { draft = fresh("eden"); step = 0; message = ""; render(root) }
+        button(root, "New experiment") { draft = fresh(); step = 0; message = ""; showStart(root) }
+        button(root, "New Eden experiment") { draft = fresh("eden"); step = 0; message = ""; showStart(root) }
         val entries = store.entries()
         if (entries.isEmpty()) root.addView(label(c, "Your saved notes will appear here. Up to 30 most recently saved experiments are kept.", 12f))
         else root.addView(label(c, "${entries.size} of 30 notes · Open a note to continue it. Oldest notes are replaced when full.", 12f))
-        entries.forEach { entry -> button(root, "${entry.game} · ${entry.result}") { draft = entry; step = 0; message = "Editing saved note"; render(root) } }
+        entries.forEach { entry -> button(root, "${entry.game} · ${entry.result}") { draft = entry; step = 0; message = "Editing saved note"; showStart(root) } }
     }
 }

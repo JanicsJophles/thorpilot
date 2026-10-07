@@ -352,7 +352,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                     if (intent != null) launchPlayApp(pkg)
                 }.apply { isEnabled = intent != null; alpha = if (intent == null) .5f else 1f }, 1f, if (index == 0) 10 else 0)
             }
-            body.addView(apps)
+            body.addView(apps, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(this@MainActivity, 8) })
         }
         body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
         body.addView(button(this, "Game care") { go("care") })
