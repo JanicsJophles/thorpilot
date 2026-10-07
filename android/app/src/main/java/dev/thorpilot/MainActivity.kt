@@ -33,6 +33,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var edenInspector: EdenInspectorPanel
     private lateinit var romSync: RomSyncPanel
     private lateinit var deviceLibrary: DeviceLibraryPanel
+    private lateinit var downloads: DownloadPanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -56,6 +57,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         edenInspector = EdenInspectorPanel(this) { global -> pickEdenConfig(global) }
         romSync = RomSyncPanel(this) { destination -> pickRomFolder(destination) }
         deviceLibrary = DeviceLibraryPanel(this, { internal -> pickLibraryFolder(internal) }, { pkg -> launchPlayApp(pkg) })
+        downloads = DownloadPanel(this) { internal -> pickDownloadFolder(internal) }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
@@ -63,6 +65,14 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requestText = if (state?.getString("request-identity") == store.identity)
             state.getString("requests") ?: initialRequests else initialRequests
         render()
+    }
+    private fun pickDownloadFolder(internal: Boolean) {
+        val request = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or android.content.Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        }
+        try { startActivityForResult(request, if (internal) 4131 else 4130) }
+        catch (_: RuntimeException) { Toast.makeText(this, "Could not open the folder picker.", Toast.LENGTH_LONG).show() }
     }
     private fun pickLibraryFolder(internal: Boolean) {
         val request = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
@@ -104,6 +114,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode in 4130..4131 && resultCode == RESULT_OK) {
+            val selected = data?.data ?: return
+            go("downloads")
+            downloads.accept(selected, requestCode == 4131, data.flags)
+            return
+        }
         if (requestCode in 4120..4121 && resultCode == RESULT_OK) {
             val selected = data?.data ?: return
             go("device-library")
@@ -157,6 +173,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         super.onStart()
         active = true
         romSync.start()
+        downloads.start()
         displays.registerDisplayListener(this, null)
         showCompanion()
     }
@@ -166,6 +183,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     override fun onStop() {
         romSync.stop()
+        downloads.stop()
         active = false
         displays.unregisterDisplayListener(this)
         companion?.dismiss()
@@ -179,6 +197,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         edenInspector.close()
         romSync.close()
         deviceLibrary.close()
+        downloads.close()
         worker.shutdownNow()
         super.onDestroy()
     }
@@ -256,10 +275,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library") && id == "device")
+            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library") && id == "device")) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
@@ -279,6 +298,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             "eden-inspector" -> {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
                 body.addView(edenInspector.createView(this))
+            }
+            "downloads" -> {
+                body.addView(utilityButton(this, "Back to My Thor") { go("device") })
+                body.addView(downloads.createView(this))
             }
             "device-library" -> {
                 body.addView(utilityButton(this, "Back to My Thor") { go("device") })
@@ -315,8 +338,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library") && id == "device")) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
@@ -393,6 +416,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(address)))
             } catch (_: Exception) { Toast.makeText(this, "Could not open your server in a browser.", Toast.LENGTH_LONG).show() }
         })
+        body.addView(utilityButton(this, "Download imported games to Thor") { go("downloads") })
         requestText.split("\n\n").forEach { request ->
             val lines = request.lines()
             val box = surface(this)
@@ -434,6 +458,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
         body.addView(button(this, "Game care") { go("care") })
         body.addView(button(this, "On this device · SD / internal") { go("device-library") })
+        body.addView(button(this, "Download to Thor") { go("downloads") })
         body.addView(button(this, "Library sync") { go("library-sync") })
     }
     private fun playAppName(pkg: String) = when (pkg) {

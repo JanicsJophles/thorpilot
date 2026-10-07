@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: python3 -m unittest discover -s companion -p 'test_*.py'
       - run: npm test
       - run: npm run build:site && node tools/check-site.mjs
       - uses: actions/upload-artifact@v4
