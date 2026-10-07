@@ -1,6 +1,6 @@
 # Game care
 
-Game care is a local experiment journal for improving how a game looks and plays. The current Android `GameCarePanel` has three stages: **Baseline**, **Trial**, and **Result**. It does not apply emulator settings, capture performance counters, or restore a configuration automatically.
+Game care is a local experiment journal for improving how a game looks and plays. The current Android `GameCarePanel` has three stages: **Baseline**, **Trial**, and **Result**. It does not apply emulator settings, capture performance counters, or restore a configuration automatically. The separate [configuration snapshots](configuration-snapshots.md) screen can save exact local backups and explicitly restore a reviewed Azahar configuration after comparison.
 
 ## Available now
 
@@ -39,10 +39,12 @@ Accurate Multiplication is a possible single-variable graphics experiment when a
 
 Azahar's own performance overlay receives game FPS, emulation speed and timing values from its emulator core. Thorpilot currently does not collect those counters. Display refresh rate in Hz describes the screen and must never be relabeled game FPS. If a user transcribes an overlay value, identify its source and observation interval; do not invent averages or low-percentile frame statistics from a single reading. [Native performance interface](https://github.com/azahar-emu/azahar/blob/2126.0/src/android/app/src/main/jni/native.cpp), [counter implementation](https://github.com/azahar-emu/azahar/blob/2126.0/src/core/perf_stats.cpp).
 
-## Future configuration adapter
+## Configuration snapshots and the future adapter
 
-An adapter that applies and restores settings remains proposed. It needs an explicit supported emulator/build matrix, narrow setting allowlists, a separate storage grant, exact original-byte backup and hashes, validation before writing, readback verification and a durable recovery journal. It must refuse conflicts when the configuration changed since the snapshot, preserve unrelated settings, and recover safely after process/device interruption. A stopped emulator is required when editing a file that the emulator may also save.
+The separate [configuration snapshots](configuration-snapshots.md) screen now provides exact local backups, hash comparisons, conflict checks and explicit restoration with a pre-restore recovery copy. Restore is limited to matching Azahar `2126.0` or `2126.0-vanilla` versions. This is whole-file restoration of a user-selected global configuration, not automatic per-game tuning. The snapshot documentation explains selection, storage limits, stop-emulator requirements and provider-write limitations.
 
-Storage Access Framework access to a ROM directory does not grant another app's private files or an unrelated configuration directory. Providers also differ in write/rename behavior; an adapter must establish its actual recovery guarantees rather than assume filesystem-atomic writes. For a build with only global settings, any temporary game profile must clearly disclose its global effect and verified restoration status. [Android document access](https://developer.android.com/training/data-storage/shared/documents-files).
+An adapter that applies individual experimental settings remains proposed. It needs narrow setting allowlists, preservation of unrelated settings, a durable recovery journal and validation across emulator builds. A stopped emulator is required when editing a file that the emulator may also save. The snapshot foundation does not make external writes atomic or establish that the selected document is the active config.
 
-Until those guarantees are implemented and tested, Game care remains a manual, reversible-by-the-user journal. Neither saving a note nor selecting Better changes an emulator.
+Storage Access Framework access to a ROM directory does not grant another app's private files or an unrelated configuration directory. Providers differ in write/rename behavior; an adapter must establish its actual recovery guarantees rather than assume filesystem-atomic writes. For a build with only global settings, any temporary game profile must clearly disclose its global effect and restoration status. [Android document access](https://developer.android.com/training/data-storage/shared/documents-files).
+
+Game care remains a manual experiment journal. Neither saving a note nor selecting Better changes an emulator; configuration restoration requires its separate preview and confirmation.

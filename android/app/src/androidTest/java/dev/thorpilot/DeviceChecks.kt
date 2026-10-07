@@ -11,9 +11,12 @@ import android.widget.TextView
 
 /** Runs against Android's actual Keystore and Activity, without a test framework dependency. */
 class DeviceChecks : Instrumentation() {
-    override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
+    private var fixtureUri: String? = null
+    override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); fixtureUri = arguments?.getString("configFixtureUri"); start() }
     override fun onStart() {
         try {
+            ConfigSnapshotChecks.run(targetContext)
+            fixtureUri?.let { ConfigDocumentChecks.run(targetContext, it) }
             GameCareChecks.run(targetContext)
             GameSessionChecks.run(targetContext)
             RequestChecks.run()
@@ -66,7 +69,7 @@ class DeviceChecks : Instrumentation() {
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }
-            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: game care store/panel and session handoff state, chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
+            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: configuration snapshot recovery and game care store/panel and session handoff state, chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
         } catch (e: Throwable) {
             finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAIL: ${e.javaClass.simpleName}: ${e.message} at ${e.stackTrace.firstOrNull()}\n") })
         }
