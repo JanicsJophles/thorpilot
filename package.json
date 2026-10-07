@@ -1,0 +1,15 @@
+{
+  "name": "thorpilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A dual-screen emulation companion for Android handhelds and Cocoon.",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

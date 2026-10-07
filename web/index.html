@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Thorpilot — a little help on the other screen</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="mast">
+      <a class="brand" href="/" aria-label="Thorpilot home"
+        ><span class="symbol">✦</span> Thorpilot</a
+      ><span class="build">Companion preview · 0.1</span
+      ><button id="theme" aria-label="Switch color theme">Nightfall</button>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">For the game. For the little things around it.</p>
+          <h1>A little help<br />on the other screen.</h1>
+          <p>
+            Your library, your next game, and a companion that keeps track.<br />Cocoon
+            stays home. Thorpilot comes along.
+          </p>
+        </div>
+        <div class="view-picker" role="group" aria-label="Preview display">
+          <button data-view="dual" aria-pressed="true">Both screens</button
+          ><button data-view="top" aria-pressed="false">Top</button
+          ><button data-view="bottom" aria-pressed="false">Bottom</button>
+        </div>
+      </section>
+      <section class="workspace" data-view="dual">
+        <section class="display upper" aria-label="Top display preview">
+          <div class="screenbar">
+            <span><i class="dot"></i> Your space</span
+            ><span id="connection">Demo · no device paired</span>
+          </div>
+          <div class="upper-content">
+            <div class="welcome">
+              <div>
+                <p class="subtle">Pick up where you left off</p>
+                <h2>Less setup.<br />More playing.</h2>
+                <p>
+                  A quiet place for your games and everything<br />you asked
+                  your companion to take care of.
+                </p>
+              </div>
+              <div class="orbit" aria-hidden="true">
+                <span>✦</span><i></i><b></b>
+              </div>
+            </div>
+            <nav class="tabs" aria-label="Top screen pages">
+              <button data-tab="requests" aria-pressed="true">
+                Requests <span id="count">0</span></button
+              ><button data-tab="device" aria-pressed="false">
+                My handheld</button
+              ><button data-tab="roadmap" aria-pressed="false">
+                What’s next
+              </button>
+            </nav>
+            <div id="top-content" aria-live="polite"></div>
+            <footer class="screenfoot">
+              <span id="last-check">Reading requests…</span
+              ><button id="refresh">Refresh</button>
+            </footer>
+          </div>
+        </section>
+        <section class="display lower" aria-label="Bottom display preview">
+          <div class="screenbar">
+            <span><i class="dot violet"></i> Companion</span
+            ><button id="new-chat">New chat</button>
+          </div>
+          <div
+            class="conversation"
+            id="conversation"
+            role="log"
+            aria-live="polite"
+          ></div>
+          <div class="starters">
+            <button data-ask="Find something for a short session">
+              A quick game</button
+            ><button data-ask="Check my requests">My requests</button
+            ><button data-ask="Help me tune a game">Tune a game</button>
+          </div>
+          <form id="composer">
+            <label class="sr-only" for="message">Ask Thorpilot</label
+            ><textarea
+              id="message"
+              rows="2"
+              maxlength="1500"
+              placeholder="What are we playing next?"
+            ></textarea
+            ><button type="submit" aria-label="Send message">↑</button>
+          </form>
+          <p class="prototype-note">
+            Scripted concept chat · no AI or device actions connected yet
+          </p>
+        </section>
+      </section>
+      <footer class="pagefoot">
+        <span>Made for two screens. Designed to stay out of your way.</span
+        ><span
+          >Independent community project · not affiliated with AYN or
+          Cocoon</span
+        >
+      </footer>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

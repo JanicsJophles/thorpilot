@@ -1,0 +1,480 @@
+:root {
+  --bg: #e9edf5;
+  --ink: #25324c;
+  --muted: #6b7892;
+  --panel: #f9fbff;
+  --line: #d9e0ed;
+  --accent: #7266bd;
+  --soft: #ebe7fb;
+  --shadow: 0 24px 70px #52648818;
+  color-scheme: light;
+  font-family: ui-rounded, "Avenir Next", Avenir, system-ui, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 90% 0, #d9dcf3, transparent 50%), var(--bg);
+  color: var(--ink);
+}
+body.night {
+  --bg: #242a3d;
+  --ink: #e6eaf5;
+  --muted: #a4aec7;
+  --panel: #30384e;
+  --line: #434c65;
+  --accent: #b2a2f4;
+  --soft: #45405d;
+  color-scheme: dark;
+  background: var(--bg);
+}
+button,
+a,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+button:hover {
+  color: var(--accent);
+}
+.mast {
+  max-width: 1440px;
+  margin: auto;
+  padding: 30px 48px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.brand {
+  color: inherit;
+  font-size: 26px;
+  font-weight: 750;
+  text-decoration: none;
+  letter-spacing: -1px;
+}
+.symbol {
+  color: var(--accent);
+  font-size: 34px;
+  vertical-align: middle;
+}
+.build {
+  font-size: 12px;
+  color: var(--muted);
+}
+#theme {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 9px 16px;
+}
+main {
+  max-width: 1344px;
+  margin: auto;
+  padding: 0 32px;
+}
+.intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: 24px 0 32px;
+  gap: 24px;
+}
+.eyebrow {
+  font-size: 13px;
+  color: var(--accent);
+}
+h1 {
+  font-size: clamp(32px, 3.8vw, 53px);
+  line-height: 1.08;
+  letter-spacing: -2px;
+  margin: 14px 0 16px;
+  font-weight: 650;
+}
+.intro p:last-child {
+  color: var(--muted);
+  line-height: 1.65;
+  font-size: 14px;
+}
+.view-picker {
+  display: flex;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 5px;
+  border-radius: 30px;
+  flex-shrink: 0;
+}
+.view-picker button {
+  padding: 10px 15px;
+  border-radius: 25px;
+  font-size: 12px;
+}
+.view-picker button[aria-pressed="true"] {
+  background: var(--soft);
+  color: var(--accent);
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(330px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.display {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 27px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.screenbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 19px 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #639883;
+  margin-right: 7px;
+}
+.dot.violet {
+  background: var(--accent);
+}
+#connection {
+  font-size: 10px;
+}
+.upper-content {
+  padding: 26px;
+}
+.welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.subtle {
+  font-size: 11px;
+  color: var(--muted);
+}
+h2 {
+  font-size: 32px;
+  line-height: 1.13;
+  letter-spacing: -1px;
+  margin: 10px 0;
+}
+.welcome p:last-child {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.orbit {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.orbit span {
+  font-size: 80px;
+  color: var(--accent);
+}
+.orbit i {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.orbit b {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  right: 5px;
+  top: 18px;
+  background: #b0c7d7;
+  border: 4px solid var(--panel);
+  border-radius: 50%;
+}
+.tabs {
+  display: flex;
+  gap: 22px;
+  margin: 28px 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs button {
+  font-size: 13px;
+  padding: 0 0 13px;
+  position: relative;
+  color: var(--muted);
+}
+.tabs button[aria-pressed="true"] {
+  color: var(--ink);
+}
+.tabs button[aria-pressed="true"]:after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  left: 0;
+  right: 0;
+}
+#count {
+  background: var(--soft);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.request {
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+}
+.request-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.request h3 {
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+.request p,
+.empty p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.tag {
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+.platform {
+  font-size: 11px;
+  color: var(--muted);
+}
+progress {
+  width: 100%;
+  height: 5px;
+  accent-color: var(--accent);
+  margin-top: 12px;
+}
+.screenfoot {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 10px;
+  padding-top: 19px;
+}
+.screenfoot button {
+  font-size: 11px;
+}
+.lower {
+  display: flex;
+  flex-direction: column;
+  min-height: 573px;
+}
+.conversation {
+  height: 355px;
+  overflow: auto;
+  padding: 24px;
+  scroll-behavior: smooth;
+}
+.assistant {
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  padding-bottom: 20px;
+}
+.assistant .sigil {
+  color: var(--accent);
+  font-size: 26px;
+  display: block;
+  margin-bottom: 10px;
+}
+.user {
+  background: var(--soft);
+  border-radius: 17px 17px 4px 17px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 23px 30px;
+  white-space: pre-wrap;
+}
+.starters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 20px;
+  flex-wrap: wrap;
+}
+.starters button {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 7px 10px;
+  font-size: 10px;
+}
+#composer {
+  display: flex;
+  align-items: center;
+  margin: 7px 20px 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 8px 10px;
+}
+textarea {
+  width: 100%;
+  background: transparent;
+  resize: none;
+  border: 0;
+  outline: none;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 8px;
+}
+#composer button {
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  background: var(--accent);
+  color: var(--panel);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.prototype-note {
+  font-size: 9px;
+  text-align: center;
+  color: var(--muted);
+  padding: 2px 10px 12px;
+}
+.pagefoot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 27px 0 40px;
+  gap: 16px;
+}
+.empty {
+  padding: 18px 0;
+  min-height: 160px;
+}
+.empty h3 {
+  font-size: 18px;
+}
+.workspace[data-view="top"] {
+  grid-template-columns: 1fr;
+  max-width: 850px;
+  margin: auto;
+}
+.workspace[data-view="top"] .lower {
+  display: none;
+}
+.workspace[data-view="bottom"] {
+  grid-template-columns: 1fr;
+  max-width: 440px;
+  margin: auto;
+}
+.workspace[data-view="bottom"] .upper {
+  display: none;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+@media (max-width: 950px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    max-width: 750px;
+    margin: auto;
+  }
+  .lower {
+    max-width: 520px;
+    width: 100%;
+    justify-self: center;
+  }
+  .intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .mast {
+    padding: 22px 28px;
+  }
+  .pagefoot {
+    flex-direction: column;
+  }
+  .build {
+    display: none;
+  }
+}
+@media (max-width: 450px) {
+  main {
+    padding: 0 14px;
+  }
+  .mast {
+    padding: 20px 18px;
+  }
+  .upper-content {
+    padding: 20px;
+  }
+  .orbit {
+    width: 85px;
+    height: 85px;
+  }
+  .orbit span {
+    font-size: 55px;
+  }
+  .orbit i {
+    width: 60px;
+    height: 60px;
+  }
+  .tabs {
+    gap: 16px;
+  }
+  .welcome p br {
+    display: none;
+  }
+  .request-top {
+    align-items: flex-start;
+  }
+  .tag {
+    white-space: normal;
+  }
+  .screenbar {
+    padding: 16px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conversation {
+    scroll-behavior: auto;
+  }
+}
