@@ -11,6 +11,8 @@ This roadmap stages useful work behind evidence gates. It supplements the [curre
 | 5. One reliable emulator adapter | Start with a documented launch path and accessible save backup, selected by feasibility tests. | Explicit URI grants, app/version checks, emulator-close handling, backup integrity and restore conflict resolution. |
 | 6. Measured tuning pilot | One emulator/version and small allowlist of reversible settings. | Repeatable baseline/change/rollback experiment; unavailable metrics clearly disclosed; no unsupported performance promises. |
 
+The manual [Game care journal](game-care.md) and explicit emulator screen handoff are available now. These are groundwork for stages 5–6, not completed configuration backup/restore or automatic tuning. The handoff opens an installed allowlisted app and yields Thorpilot's companion screen; it does not assert that a game is running.
+
 ## Physical-device matrix
 
 Test both display roles, main-only use, lower-screen release, Cocoon → Thorpilot → emulator → Cocoon, screen disconnect, docking, Android back, screen lock and process recreation. A two-screen DS/3DS session must not compete with a Thorpilot presentation.
@@ -39,4 +41,4 @@ Measure companion overhead while idle, in chat, and during a transfer. Establish
 
 A PR should say exactly which capability was implemented, which devices/versions were tested, and what remains unsupported. Required CI and maintainer review precede merge. Public fork code stays off private runners until reviewed under the contribution policy. Release notes link the relevant adapter record and list behavior changes, rollback limitations, and migration steps.
 
-Useful next slices: widget launch; read-only ROM directory picker; missing-game diagnostic; one save-backup adapter. Each should be independently useful before adding broad autonomous control.
+Useful next slices: read-only ROM directory picker; missing-game diagnostic; one save-backup adapter; a controlled same-scene graphics experiment using the manual journal. Each should be independently useful before adding broad autonomous control.

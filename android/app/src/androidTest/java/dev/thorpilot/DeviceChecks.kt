@@ -14,6 +14,8 @@ class DeviceChecks : Instrumentation() {
     override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
     override fun onStart() {
         try {
+            GameCareChecks.run(targetContext)
+            GameSessionChecks.run(targetContext)
             RequestChecks.run()
             ChatChecks.runChecks(targetContext)
             val store = ConnectionStore(targetContext, "connection-test")
@@ -41,6 +43,7 @@ class DeviceChecks : Instrumentation() {
             var uiFailure: Throwable? = null
             runOnMainSync {
                 try {
+                GameCareChecks.runPanel(activity)
                 WidgetChecks.run(targetContext)
                 fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup)
                     (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()
@@ -63,7 +66,7 @@ class DeviceChecks : Instrumentation() {
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }
-            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
+            finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: game care store/panel and session handoff state, chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
         } catch (e: Throwable) {
             finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAIL: ${e.javaClass.simpleName}: ${e.message} at ${e.stackTrace.firstOrNull()}\n") })
         }

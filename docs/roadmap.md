@@ -9,12 +9,14 @@
 - [x] Native Kotlin app with physical display discovery and lifecycle handling
 - [x] Encrypted on-device connection settings
 - [x] AYN Thor USB installation, touch routing, and device tests
+- [x] Local manual Game care journal: baseline, one-setting trial and observed result
+- [x] Explicit allowlisted emulator handoff, persisted screen yield and user-triggered reclaim
 
 ## Next: real handheld foundation
 
 - [ ] Inventory Cocoon version, device variant, firmware and emulator packages
 - [ ] Refine native UI and introduce Compose where useful
-- [ ] Android widget and Cocoon launch/display verification
+- [x] Android widget and Cocoon hosted-tap verification (resize/controller checks remain)
 - [ ] Explicit pairing and scoped device inventory
 - [ ] Stock ROMarr adapter and documented capability negotiation
 - [x] Optional server-backed game discovery chat with catalog matches
@@ -27,6 +29,8 @@
 - [ ] Save backup/restore adapters and conflict handling
 - [ ] Multidisc and region/revision-aware library organization
 - [ ] Version-specific emulator settings and reversible changes
-- [ ] Measured optimization experiments on real hardware
+- [ ] Measured optimization experiments on real hardware; the manual journal does not auto-apply or benchmark
 
 No milestone implies untested device compatibility or guaranteed game performance.
+
+See [Game care](game-care.md) for the currently available manual workflow and proposed version-aware configuration adapter.

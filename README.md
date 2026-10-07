@@ -4,7 +4,7 @@
 
 A dual-screen emulation companion for Android handhelds, designed to live alongside Cocoon.
 
-**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, launches installed emulators, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
+**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, provides explicit emulator screen handoffs and a manual game-care journal, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
 
 ## Android app
 
@@ -17,9 +17,9 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n dev.thorpilot/.MainActivity
 ```
 
-Launch Thorpilot from Cocoon like any other installed app. The main display shows the workspace; a presentation-capable secondary display shows companion actions. Display IDs are discovered at runtime. Release the companion from either screen, or leave the app to return the second screen to other apps. Single-screen devices keep every action in the main workspace.
+Launch Thorpilot from Cocoon like any other installed app. The main display shows the workspace; a presentation-capable secondary display shows companion actions. Display IDs are discovered at runtime. Release the companion from either screen, or leave the app to return the second screen to other apps. Single-screen devices keep every action in the main workspace. An explicit emulator handoff releases the companion screen and keeps it yielded until you reclaim it. Returning to an emulator opens its app; Thorpilot does not guarantee that a particular game resumes or provide a simultaneous gameplay overlay.
 
-Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native chat uses the optional custom `/api/v1/game-chat` endpoint, with bounded local conversation/draft persistence. A launcher widget, scoped SD-card access, and tuning are still on the roadmap.
+Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native chat uses the optional custom `/api/v1/game-chat` endpoint, with bounded local conversation/draft persistence. A launcher widget and manual [Game care journal](docs/game-care.md) are available. Scoped SD-card access and automatic tuning remain future work.
 
 See [device testing](docs/device-testing.md) for the ADB development loop.
 
