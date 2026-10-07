@@ -4,7 +4,11 @@ Game care is a local experiment journal for improving how a game looks and plays
 
 ## Available now
 
-Baseline records the game, a symptom category (Texture, Flicker, Shadows, Stutter or Other), a repeatable scene and a before observation. Trial records the original setting and one proposed manual change. Result records Untested, Better, Same or Worse plus an after observation. Device and detected Azahar version accompany the note; version detection is not proof of the active game's settings.
+Baseline records the game, a symptom category (Texture, Flicker, Shadows, Stutter or Other), a repeatable scene and a before observation. Trial records the original setting and one proposed manual change. Result records Untested, Better, Same or Worse plus an after observation. Device and recorded emulator build accompany the note. **New experiment** starts an Azahar note; **New Eden experiment** starts an Eden note and detects its installed build. Baseline also records game revision and graphics driver/backend when known. Trial records Unknown, Per-game or Global scope. These are manual observations; package detection does not read the running game's configuration.
+
+**Reuse as untested trial** creates an unsaved draft from an existing note. It keeps the game, symptom, scene and proposed change, but assigns a new ID and records the source note. It resets the outcome, before/after observations, original setting, revision, driver and scope. The current device and detected emulator build replace the old environment. Record the current original setting again before testing. The source note stays unchanged until explicitly edited; a successful experiment is not promoted to a universal preset.
+
+Older records without an emulator identity retain their original Azahar meaning. Saved notes preserve their recorded build; a mismatch with the installed build is displayed rather than silently rewriting historical evidence. My Thor now offers an Eden app handoff alongside the existing emulator shortcuts. This opens Eden, not a particular game or its settings. Eden configuration writes, snapshots and automatic rollback are not supported.
 
 Use **Save local note** to persist an entry. Saved notes can be reopened and edited. The app keeps up to 30 most recently saved experiments in its private preferences; saving beyond that limit replaces the oldest note. Draft text and the selected step participate in Android activity-state restoration. Unsaved text is not a durable experiment record: force-stop, discarding the task, opening another note or starting a new experiment can discard it. Save the original setting before leaving to run a trial. These notes are local plaintext inside the Android app sandbox, with no network submission by this feature. They are not an emulator backup.
 
@@ -48,3 +52,7 @@ An adapter that applies individual experimental settings remains proposed. It ne
 Storage Access Framework access to a ROM directory does not grant another app's private files or an unrelated configuration directory. Providers differ in write/rename behavior; an adapter must establish its actual recovery guarantees rather than assume filesystem-atomic writes. For a build with only global settings, any temporary game profile must clearly disclose its global effect and restoration status. [Android document access](https://developer.android.com/training/data-storage/shared/documents-files).
 
 Game care remains a manual experiment journal. Neither saving a note nor selecting Better changes an emulator; configuration restoration requires its separate preview and confirmation.
+
+## Eden workflow verification
+
+The reusable-trial model has local JVM tests for identity, provenance, reset of prior results and environment, and preservation of the source record. Android instrumentation includes Eden persistence, legacy-note defaults and UI reuse coverage, but that new coverage still needs execution on a reconnected Thor. Native Eden handoff and visual layout also await hardware acceptance. Earlier manual Z-A results do not verify these new app paths.

@@ -343,19 +343,23 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
         body.addView(screens)
         body.addView(label(this, "Your play space", 19f, true))
-        val apps = horizontal(this)
-        listOf("Cocoon" to "rip.moth.cocoonshell", "Azahar" to "org.azahar_emu.azahar", "melonDualDS" to "me.magnum.melondualds").forEachIndexed { index, (name, pkg) ->
-            val intent = packageManager.getLaunchIntentForPackage(pkg)
-            addWeighted(apps, button(this, if (intent == null) "$name • unavailable" else "Open $name") {
-                if (intent != null) launchPlayApp(pkg)
-            }.apply { isEnabled = intent != null; alpha = if (intent == null) .5f else 1f }, 1f, if (index < 2) 10 else 0)
+        listOf("Cocoon" to "rip.moth.cocoonshell", "Azahar" to "org.azahar_emu.azahar",
+            "Eden" to "dev.eden.eden_emulator", "melonDualDS" to "me.magnum.melondualds").chunked(2).forEach { row ->
+            val apps = horizontal(this)
+            row.forEachIndexed { index, (name, pkg) ->
+                val intent = packageManager.getLaunchIntentForPackage(pkg)
+                addWeighted(apps, button(this, if (intent == null) "$name • unavailable" else "Open $name") {
+                    if (intent != null) launchPlayApp(pkg)
+                }.apply { isEnabled = intent != null; alpha = if (intent == null) .5f else 1f }, 1f, if (index == 0) 10 else 0)
+            }
+            body.addView(apps)
         }
-        body.addView(apps)
         body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
         body.addView(button(this, "Game care") { go("care") })
     }
     private fun playAppName(pkg: String) = when (pkg) {
         "org.azahar_emu.azahar" -> "Azahar"
+        "dev.eden.eden_emulator" -> "Eden"
         "me.magnum.melondualds" -> "melonDualDS"
         "rip.moth.cocoonshell" -> "Cocoon"
         else -> "emulator"

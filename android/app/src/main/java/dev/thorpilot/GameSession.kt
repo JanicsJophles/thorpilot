@@ -6,7 +6,7 @@ import java.util.UUID
 /** Records only an explicit app handoff, never infers a running game or performance. */
 class GameSession(context: Context, preferencesName: String = "game-session") {
     companion object {
-        val ALLOWED_PACKAGES = setOf("org.azahar_emu.azahar", "me.magnum.melondualds", "rip.moth.cocoonshell")
+        val ALLOWED_PACKAGES = setOf("dev.eden.eden_emulator", "org.azahar_emu.azahar", "me.magnum.melondualds", "rip.moth.cocoonshell")
         private val lock = Any()
     }
     private val prefs = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)

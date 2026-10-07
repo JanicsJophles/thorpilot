@@ -3,6 +3,7 @@
     <queries>
         <package android:name="rip.moth.cocoonshell" />
         <package android:name="org.azahar_emu.azahar" />
+        <package android:name="dev.eden.eden_emulator" />
         <package android:name="me.magnum.melondualds" />
     </queries>
     <application android:icon="@drawable/ic_thorpilot" android:label="Thorpilot" android:theme="@style/AppTheme"

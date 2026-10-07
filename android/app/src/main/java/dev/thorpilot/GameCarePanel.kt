@@ -29,12 +29,14 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         putString("result", draft.result); putString("before", draft.before.take(600)); putString("after", draft.after.take(600))
         putString("device", draft.device.take(120)); putString("emulator", draft.emulator.take(120))
         putLong("updated", draft.updated)
+        putString("emulatorId", draft.emulatorId); putString("gameRevision", draft.gameRevision.take(120))
+        putString("driver", draft.driver.take(160)); putString("scope", draft.scope); putString("sourceId", draft.sourceId.take(64))
     }
     fun restoreState(state: Bundle?) {
         if (state == null) return
         val restored = runCatching {
             fun value(key: String, limit: Int) = state.getString(key).orEmpty().take(limit)
-            val base = fresh()
+            val base = fresh(value("emulatorId", 16).takeIf { it in GameCareStore.emulators } ?: "azahar")
             GameCareEntry(
                 id = value("id", 64).ifBlank { base.id }, game = value("game", 120),
                 symptom = value("symptom", 32).takeIf { it in GameCareStore.symptoms } ?: "Texture",
@@ -42,17 +44,24 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
                 result = value("result", 32).takeIf { it in GameCareStore.results } ?: "Untested",
                 before = value("before", 600), after = value("after", 600),
                 device = value("device", 120).ifBlank { base.device }, emulator = value("emulator", 120).ifBlank { base.emulator },
-                updated = state.getLong("updated", 0L).coerceAtLeast(0L)
+                updated = state.getLong("updated", 0L).coerceAtLeast(0L),
+                emulatorId = value("emulatorId", 16).takeIf { it in GameCareStore.emulators } ?: "azahar",
+                gameRevision = value("gameRevision", 120), driver = value("driver", 160),
+                scope = value("scope", 16).takeIf { it in GameCareStore.scopes } ?: "Unknown", sourceId = value("sourceId", 64)
             ) to state.getInt("step", 0).coerceIn(0, 2)
         }.getOrNull() ?: return
         draft = restored.first; step = restored.second; message = ""
     }
-    private fun fresh() = GameCareEntry(device = Build.MODEL, emulator = azaharVersion())
-    private fun azaharVersion(): String = runCatching {
-        @Suppress("DEPRECATION")
-        val info = app.packageManager.getPackageInfo("org.azahar_emu.azahar", 0)
-        "Azahar ${info.versionName ?: "unknown version"}"
-    }.getOrDefault("Azahar not detected")
+    private fun fresh(id: String = "azahar") = GameCareEntry(device = Build.MODEL, emulatorId = id, emulator = emulatorVersion(id))
+    private fun emulatorVersion(id: String): String {
+        val name = if (id == "eden") "Eden" else "Azahar"
+        val pkg = if (id == "eden") "dev.eden.eden_emulator" else "org.azahar_emu.azahar"
+        return runCatching {
+            @Suppress("DEPRECATION")
+            val info = app.packageManager.getPackageInfo(pkg, 0)
+            "$name ${info.versionName ?: "unknown version"}"
+        }.getOrDefault("$name not detected")
+    }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun label(c: Context, value: String, size: Float = 14f, strong: Boolean = false) = TextView(c).apply {
         text = value; textSize = size; setTextColor(if (strong) 0xfff2f6fc.toInt() else 0xffafc1d0.toInt())
@@ -87,6 +96,9 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         }
         card.addView(steps)
         card.addView(label(c, "${draft.device} · ${draft.emulator}", 11f))
+        val installed = emulatorVersion(draft.emulatorId)
+        if (draft.emulator != installed) card.addView(label(c, "Recorded build differs from detection: $installed. Previous results do not verify this build.", 12f))
+        if (draft.sourceId.isNotBlank()) card.addView(label(c, "Reused trial · Confirm this game's current settings before testing again.", 12f))
         fun field(title: String, value: String, limit: Int, change: (String) -> Unit) {
             card.addView(label(c, title, 13f, true))
             card.addView(EditText(c).apply {
@@ -119,11 +131,15 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         when (step) {
             0 -> {
                 field("Game", draft.game, 120) { draft = draft.copy(game = it) }
+                field("Game revision (if known)", draft.gameRevision, 120) { draft = draft.copy(gameRevision = it) }
+                field("Emulator build (recorded)", draft.emulator, 120) { draft = draft.copy(emulator = it) }
+                field("Graphics driver / backend (if known)", draft.driver, 160) { draft = draft.copy(driver = it) }
                 choice("What needs attention?", GameCareStore.symptoms, draft.symptom) { draft = draft.copy(symptom = it) }
                 field("Scene to repeat", draft.scene, 600) { draft = draft.copy(scene = it) }
                 field("Before: what you observed", draft.before, 600) { draft = draft.copy(before = it) }
             }
             1 -> {
+                choice("Setting scope", GameCareStore.scopes, draft.scope) { draft = draft.copy(scope = it) }
                 field("Original setting — your rollback", draft.original, 240) { draft = draft.copy(original = it) }
                 field("One setting to try manually", draft.trial, 240) { draft = draft.copy(trial = it) }
                 card.addView(label(c, "Change one value in the emulator, then repeat the same scene. Keep every other setting unchanged.", 12f))
@@ -146,15 +162,24 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
             render(root)
         }
         if (message.isNotBlank()) card.addView(label(c, message, 13f))
-        if (step == 1) {
+        if (step == 1 && draft.emulatorId == "azahar") {
         root.addView(label(c, "Azahar: a possible graphics experiment", 16f, true))
         root.addView(label(c, "Accurate multiplication can fix shader rendering in games that need it, but may reduce performance. Azahar recommends leaving it disabled unless required. Availability and behavior depend on the build; this is not a universal fix.", 12f))
         root.addView(label(c, "Source: https://azahar-emu.org/blog/one-year-citra-takedown/", 12f).apply {
             Linkify.addLinks(this, Linkify.WEB_URLS); movementMethod = LinkMovementMethod.getInstance(); setLinkTextColor(0xff6cf7d0.toInt())
         })
         }
+        if (step == 1 && draft.emulatorId == "eden") {
+            root.addView(label(c, "Eden: keep the experiment specific", 16f, true))
+            root.addView(label(c, "Record the actual GPU mode and whether it inherits global settings. Use the game's own settings screen for a per-game trial. Driver and resolution changes are separate experiments. A successful scene does not verify the whole game. Eden configuration backup and automatic rollback are not available here.", 12f))
+        }
+        if (draft.updated > 0) button(root, "Reuse as untested trial") {
+            draft = draft.newTrial(Build.MODEL, emulatorVersion(draft.emulatorId))
+            step = 0; message = "New draft. Record the current driver, revision, scope and original setting before testing."; render(root)
+        }
         root.addView(label(c, "Your experiments", 18f, true))
         button(root, "New experiment") { draft = fresh(); step = 0; message = ""; render(root) }
+        button(root, "New Eden experiment") { draft = fresh("eden"); step = 0; message = ""; render(root) }
         val entries = store.entries()
         if (entries.isEmpty()) root.addView(label(c, "Your saved notes will appear here. Up to 30 most recently saved experiments are kept.", 12f))
         else root.addView(label(c, "${entries.size} of 30 notes · Open a note to continue it. Oldest notes are replaced when full.", 12f))
