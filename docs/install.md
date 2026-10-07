@@ -4,7 +4,7 @@ Thorpilot is an **early Android preview**, designed for AYN Thor and usable on A
 
 ## Download the preview
 
-The first signed public APK is being prepared. The links below become available when release **v0.1.0-preview.1** is published; a missing download means publication is still pending.
+The signed public preview **v0.1.0-preview.1** is available below. Read its known limitations before installing.
 
 - [Preview release and known limitations](https://github.com/JanicsJophles/thorpilot/releases/tag/v0.1.0-preview.1)
 - [Download Thorpilot 0.1.0-preview.1 APK](https://github.com/JanicsJophles/thorpilot/releases/download/v0.1.0-preview.1/thorpilot-0.1.0-preview.1.apk)
@@ -13,12 +13,18 @@ GitHub sign-in is not required to download public release assets. Use the signed
 
 ## Install on your handheld
 
-1. Open this page in your handheld's browser and download the preview APK once available.
+1. Open this page in your handheld's browser and download the preview APK.
 2. Open the download. If Android asks, allow that browser to install unknown apps, then return to the installer. This permission applies to the browser you used; you can turn it off again after installation.
 3. Tap **Install**, then **Open**. Thorpilot also appears in your installed apps and can be launched from your frontend.
 4. Follow the guided setup. Choose an existing ROM folder when you are ready, or skip that step and return later. Android's folder picker grants access only to the location you choose.
 
 Setup does not require a library server, chat provider, or API key. Connections are optional extras. Keep your existing folder layout; choosing a folder does not require reorganizing or replacing its files. See [library storage and transfers](library-sync.md) for supported formats and separate internal-storage and SD-card locations.
+
+## Guided setup and advanced tools
+
+The guide is optional. It saves your checkpoints on this device, so you can stop and return through **My Thor → Set up my handheld**. Opening Cocoon or browsing a folder does not mark setup complete; you confirm each step after checking it.
+
+You can leave the guide at any time and use the existing tools under **My Thor**, including storage locations, library sync, downloads and Game care. Optional services live under **Connection**. Setup does not choose emulator settings or change another app’s preferences for you.
 
 ## Cocoon and other frontends
 
