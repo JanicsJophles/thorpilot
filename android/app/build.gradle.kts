@@ -10,8 +10,8 @@ android {
         minSdk = 30
         targetSdk = 35
         testInstrumentationRunner = providers.gradleProperty("thorpilotTestRunner").orElse("dev.thorpilot.DeviceChecks").get()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.0-preview.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

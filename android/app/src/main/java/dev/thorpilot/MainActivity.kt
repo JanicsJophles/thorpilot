@@ -33,6 +33,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var romSync: RomSyncPanel
     private lateinit var deviceLibrary: DeviceLibraryPanel
     private lateinit var downloads: DownloadPanel
+    private lateinit var setup: SetupPanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -57,8 +58,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requests = RequestPanel(this, { go("settings") }) { title ->
             downloads.search(title); go("downloads")
         }
+        setup = SetupPanel(this, { go("device-library") }, { pkg -> launchPlayApp(pkg) }, { go("home") }, { go("settings") })
         chatPanel = ChatPanel(this, store) { go("settings") }
-        page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
+        val existingSetup = store.url.isNotBlank() || gameSession.lastPackage.isNotBlank() ||
+            getSharedPreferences("device-library", MODE_PRIVATE).all.isNotEmpty()
+        page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?:
+            if (!SetupPanel.hasSeenSetup(this) && !existingSetup) "setup" else "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
         render()
     }
@@ -166,6 +171,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onStart() {
         super.onStart()
         active = true
+        setup.refresh()
         romSync.start()
         downloads.start()
         displays.registerDisplayListener(this, null)
@@ -192,6 +198,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         deviceLibrary.close()
         downloads.close()
         requests.close()
+        setup.close()
         super.onDestroy()
     }
     override fun onDisplayAdded(id: Int) { showCompanion(); render() }
@@ -270,10 +277,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")
+            item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
@@ -310,6 +317,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
                 body.addView(configSnapshots.createView(this))
             }
+            "setup" -> body.addView(setup.createView(this))
             "requests" -> requestsPage()
             "settings" -> settingsPage()
             else -> workspacePage()
@@ -333,8 +341,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads") && id == "device")) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
@@ -375,7 +383,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 20), 0, 0, 0) }
         introduction.addView(label(this, "Your next adventure\nstarts with a conversation.", 24f, true))
         introduction.addView(label(this, "Find a hidden gem. Check your library.\nLet’s make more time for play.", 14f).apply { setTextColor(muted) })
-        introduction.addView(button(this, "Find my next game") { go("chat") }.apply {
+        introduction.addView(button(this, if (store.url.isBlank()) "Set up my handheld" else "Find my next game") { go(if (store.url.isBlank()) "setup" else "chat") }.apply {
             setTextColor(mist); background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xffabffe0.toInt(), iris)).apply { cornerRadius = dp(this@MainActivity, 22).toFloat() }
         }, LinearLayout.LayoutParams(dp(this, 230), dp(this, 48)).apply { topMargin = dp(this@MainActivity, 10) })
         if (wide) scene.addView(introduction, LinearLayout.LayoutParams(0, -2, 1f)) else scene.addView(introduction)
@@ -405,6 +413,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         addWeighted(title, label(this, "Meet your ${Build.MODEL}", 25f, true))
         title.addView(label(this, "Android ${Build.VERSION.RELEASE}", 13f).apply { setTextColor(muted) })
         body.addView(title)
+        body.addView(utilityButton(this, "Set up my handheld") { go("setup") })
         sessionBar()
         val screens = horizontal(this).apply { gravity = Gravity.TOP }
         displays.displays.forEachIndexed { index, display ->
@@ -433,6 +442,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(button(this, "On this device · SD / internal") { go("device-library") })
         body.addView(button(this, "Download to Thor") { go("downloads") })
         body.addView(button(this, "Library sync") { go("library-sync") })
+        val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
+        body.addView(label(this, "Thorpilot $version · Early preview", 12f).apply { setTextColor(muted) })
+        body.addView(utilityButton(this, "Install and update guide") {
+            runCatching { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://thorpilot.rackmind.ai/docs/install.html"))) }
+                .onFailure { Toast.makeText(this, "Open thorpilot.rackmind.ai on another device for the guide.", Toast.LENGTH_LONG).show() }
+        })
     }
     private fun playAppName(pkg: String) = when (pkg) {
         "org.azahar_emu.azahar" -> "Azahar"

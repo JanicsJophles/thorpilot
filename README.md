@@ -6,7 +6,13 @@ A dual-screen emulation companion for Android handhelds, designed to live alongs
 
 **Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, provides explicit emulator screen handoffs and a manual game-care journal, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM or tune emulators. An optional self-hosted library gateway supports verified, resumable downloads of files already in your library to the device. The browser concept chat uses scripted responses.
 
-## Android app
+## Get started on your handheld
+
+The [installation guide](https://thorpilot.rackmind.ai/docs/install.html) provides the public Android preview download and a short setup walkthrough. No computer, root, Thorpilot account, server, or API key is required for local setup. New users get a resumable guide; existing users can open **My Thor → Set up my handheld** anytime. Choose Cocoon or another frontend, keep your existing game folders, and test one game before adding optional services.
+
+Advanced tools remain available from My Thor and Connection. Setup is a guide with your own checkpoints; it does not silently install or configure other apps. Public preview and development builds use different signing identities; see the install guide before switching between them.
+
+## Build the Android app
 
 Requires Android 11 or newer. Build with JDK 17+ and Android SDK 35:
 

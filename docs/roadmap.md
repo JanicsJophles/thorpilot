@@ -2,6 +2,8 @@
 
 ## Present
 
+- [x] Resumable local-first guided setup, official frontend handoffs, and optional service connections
+
 - [x] Original responsive dual-panel design preview
 - [x] Optional read-only custom ROMarr request adapter
 - [x] Tab-local conversation/draft persistence
