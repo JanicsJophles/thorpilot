@@ -1,6 +1,6 @@
 # Architecture
 
-The browser prototype demonstrates presentation and a read-only integration boundary. The native Android prototype now implements dual-display presentation, optional server-backed discovery chat, encrypted connection storage, and read-only request status. General device tools remain planned.
+The browser prototype demonstrates presentation and a read-only integration boundary. The native Android prototype now implements dual-display presentation, optional server-backed discovery chat, encrypted connection storage, read-only request status, a local manual game-care journal, and explicit emulator screen handoff. General device tools and automatic tuning remain planned. See [Game care](game-care.md) for the journal and its limits.
 
 See the [copilot vision](copilot-vision.md), [integration evidence](integration-feasibility.md), [proposed architecture decisions](copilot-adrs.md), and [delivery gates](copilot-delivery.md) for the next stages.
 

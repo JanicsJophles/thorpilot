@@ -5,25 +5,50 @@ import android.graphics.drawable.Drawable
 
 /** A reusable dimensional glass surface. Drawn locally; not a sampled blur. */
 class PilotGlass(private val radius: Float = 28f, private val selected: Boolean = false) : Drawable() {
-    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    override fun draw(c: Canvas) {
-        val r=RectF(bounds).apply { inset(1f,1f) }
-        p.alpha=255;p.shader=LinearGradient(0f,r.top,0f,r.bottom,if(selected) 0xf037726e.toInt() else 0xf01a2730.toInt(),if(selected) 0xfa0b353c.toInt() else 0xfa070d16.toInt(),Shader.TileMode.CLAMP)
-        p.style=Paint.Style.FILL;c.drawRoundRect(r,radius,radius,p)
-        p.alpha=255;p.shader=LinearGradient(0f,r.top,0f,r.bottom,0x807edfd8.toInt(),0x12253b49,Shader.TileMode.CLAMP)
-        p.style=Paint.Style.STROKE;p.strokeWidth=2f;c.drawRoundRect(r,radius,radius,p)
-        p.alpha=255;p.shader=null;p.style=Paint.Style.FILL
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rim = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f }
+    private val surface = RectF()
+    override fun onBoundsChange(bounds: Rect) {
+        surface.set(bounds); surface.inset(1f, 1f)
+        if (surface.isEmpty) return
+        fill.shader = LinearGradient(0f, surface.top, 0f, surface.bottom,
+            if (selected) 0xf037726e.toInt() else 0xf01a2730.toInt(),
+            if (selected) 0xfa0b353c.toInt() else 0xfa070d16.toInt(), Shader.TileMode.CLAMP)
+        rim.shader = LinearGradient(0f, surface.top, 0f, surface.bottom,
+            0x807edfd8.toInt(), 0x12253b49, Shader.TileMode.CLAMP)
     }
-    override fun setAlpha(a:Int){p.alpha=a}
-    override fun setColorFilter(f:ColorFilter?){p.colorFilter=f}
-    @Deprecated("Deprecated in Java") override fun getOpacity()=PixelFormat.TRANSLUCENT
+    override fun draw(c: Canvas) {
+        if (surface.isEmpty) return
+        c.drawRoundRect(surface, radius, radius, fill)
+        c.drawRoundRect(surface, radius, radius, rim)
+    }
+    override fun setAlpha(a: Int) { fill.alpha = a; rim.alpha = a; invalidateSelf() }
+    override fun setColorFilter(f: ColorFilter?) { fill.colorFilter = f; rim.colorFilter = f; invalidateSelf() }
+    @Deprecated("Deprecated in Java") override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
 
 /** Original launcher-like vector icons, with their own sculpted tile and rim. */
 class PilotIcon(private val kind:String): Drawable() {
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
-    override fun draw(c:Canvas) {
-        val save=c.save();c.translate(bounds.left.toFloat(),bounds.top.toFloat());c.scale(bounds.width()/100f,bounds.height()/100f)
+    private val layerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val scene by lazy {
+        Picture().apply {
+            val recording = beginRecording(100, 100)
+            paintScene(recording)
+            endRecording()
+        }
+    }
+    override fun draw(c: Canvas) {
+        if (bounds.isEmpty) return
+        val save = if (layerPaint.alpha == 255 && layerPaint.colorFilter == null) c.save() else
+            c.saveLayer(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat(), layerPaint)
+        c.translate(bounds.left.toFloat(), bounds.top.toFloat())
+        c.scale(bounds.width() / 100f, bounds.height() / 100f)
+        c.drawPicture(scene)
+        c.restoreToCount(save)
+    }
+    private fun paintScene(c: Canvas) {
+        val save=c.save()
         val colors=when(kind){"chat"->intArrayOf(0xff84ffc3.toInt(),0xff00bfae.toInt());"device"->intArrayOf(0xff75caff.toInt(),0xff3558ed.toInt());"requests"->intArrayOf(0xffd2a1ff.toInt(),0xff8533f0.toInt());else->intArrayOf(0xffffc979.toInt(),0xffff754b.toInt())}
         p.color=0x44000000;c.drawRoundRect(5f,8f,95f,98f,25f,25f,p)
         p.alpha=255;p.shader=LinearGradient(0f,3f,90f,95f,colors,null,Shader.TileMode.CLAMP);c.drawRoundRect(4f,3f,96f,94f,25f,25f,p);p.alpha=255;p.shader=null
@@ -54,16 +79,33 @@ class PilotIcon(private val kind:String): Drawable() {
         }
         p.style=Paint.Style.FILL;p.alpha=255;p.shader=null;c.restoreToCount(save)
     }
-    override fun setAlpha(a:Int){p.alpha=a}
-    override fun setColorFilter(f:ColorFilter?){p.colorFilter=f}
+    override fun setAlpha(a:Int){layerPaint.alpha=a;invalidateSelf()}
+    override fun setColorFilter(f:ColorFilter?){layerPaint.colorFilter=f;invalidateSelf()}
     @Deprecated("Deprecated in Java") override fun getOpacity()=PixelFormat.TRANSLUCENT
 }
 
 /** Original orbital scene for the workspace, made from scalable paths. */
 class PilotJourney : Drawable() {
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
-    override fun draw(c:Canvas){
-        val save=c.save();c.translate(bounds.left.toFloat(),bounds.top.toFloat());c.scale(bounds.width()/320f,bounds.height()/240f)
+    private val layerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val scene by lazy {
+        Picture().apply {
+            val recording = beginRecording(320, 240)
+            paintScene(recording)
+            endRecording()
+        }
+    }
+    override fun draw(c: Canvas) {
+        if (bounds.isEmpty) return
+        val save = if (layerPaint.alpha == 255 && layerPaint.colorFilter == null) c.save() else
+            c.saveLayer(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat(), layerPaint)
+        c.translate(bounds.left.toFloat(), bounds.top.toFloat())
+        c.scale(bounds.width() / 320f, bounds.height() / 240f)
+        c.drawPicture(scene)
+        c.restoreToCount(save)
+    }
+    private fun paintScene(c: Canvas) {
+        val save=c.save()
         p.alpha=255;p.shader=RadialGradient(152f,120f,118f,intArrayOf(0x703ad6b4,Color.TRANSPARENT),null,Shader.TileMode.CLAMP);c.drawRect(0f,0f,320f,240f,p);p.alpha=255;p.shader=null
         p.style=Paint.Style.STROKE;p.strokeWidth=1f;p.color=0x665de4d5
         c.save();c.rotate(-20f,155f,127f);c.drawOval(26f,67f,290f,190f,p);c.drawOval(4f,39f,312f,212f,p);c.restore();p.style=Paint.Style.FILL
@@ -82,7 +124,7 @@ class PilotJourney : Drawable() {
         for((x,y) in listOf(69f to 61f,245f to 165f,215f to 35f)){p.color=0xffd7fcf6.toInt();val star=Path().apply{moveTo(x,y-5);lineTo(x+2,y-2);lineTo(x+5,y);lineTo(x+2,y+2);lineTo(x,y+5);lineTo(x-2,y+2);lineTo(x-5,y);lineTo(x-2,y-2);close()};c.drawPath(star,p)}
         c.restoreToCount(save)
     }
-    override fun setAlpha(a:Int){p.alpha=a}
-    override fun setColorFilter(f:ColorFilter?){p.colorFilter=f}
+    override fun setAlpha(a:Int){layerPaint.alpha=a;invalidateSelf()}
+    override fun setColorFilter(f:ColorFilter?){layerPaint.colorFilter=f;invalidateSelf()}
     @Deprecated("Deprecated in Java") override fun getOpacity()=PixelFormat.TRANSLUCENT
 }

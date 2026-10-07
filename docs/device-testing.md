@@ -58,3 +58,13 @@ For a release candidate, walk through:
 7. Inspect screenshots for clipped text, scrunched spacing, oversized controls, keyboard obstruction, and tab flicker.
 
 Record the build, device/OS version, exact journeys, observed results, and untested areas locally. A passing build, instrumentation suite, or single walkthrough is not a production-readiness claim. Rotation, long sessions, offline recovery, controller behavior, and emulator handoffs need their own coverage before being described as seamless.
+
+## Game-care and emulator handoff evidence
+
+A physical AYN Thor check on 2026-10-07 used Azahar **2126.0-vanilla** and an existing Pokémon Omega Ruby save in Littleroot. Character movement was exercised. Azahar's own performance overlay was observed at approximately **30 FPS** during sampled moments. This was not a timed benchmark, a frame-time distribution, or a before/after optimization comparison. No reproducible graphical defect was established in that observation, and no setting improvement is claimed.
+
+Azahar's secondary-display Presentation covered the lower screen when Thorpilot was launched there during the game. Simultaneous Thorpilot-over-game display use is therefore **not supported by this observed path**. Use the explicit handoff: Thorpilot dismisses its companion and preserves the yielded state; return through the app action when appropriate, then reclaim the companion explicitly. The emulator controls whether its game resumes. Do not describe launching another activity as a verified seamless dual-screen overlay.
+
+The manual [Game care journal](game-care.md) records a baseline, proposed one-setting trial and result. Its notes are not measured telemetry, a verified configuration backup or automatic rollback. A future acceptance pass must reproduce a specific visual symptom, record exact original settings, compare the same scene, restore the original and verify recovery. Check force-stop/relaunch and failed-launch behavior independently from a successful app launch.
+
+The same check returned from the game to Thorpilot and used **Return to Azahar** to resume the existing scene. The temporary controller and performance overlays were restored to their original disabled states. A baseline-only note was entered through the real Android form and persisted; isolated device instrumentation also covers step retention, save/reopen/edit, bounded journal storage and session-state rollback. Cross-display activity moves showed input-focus trouble before a fresh launch, so arbitrary live display relocation remains unverified.

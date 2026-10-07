@@ -27,6 +27,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var displays: DisplayManager
     private lateinit var store: ConnectionStore
     private lateinit var chatPanel: ChatPanel
+    private lateinit var gameSession: GameSession
+    private lateinit var gameCare: GameCarePanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -44,6 +46,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         super.onCreate(state)
         displays = getSystemService(DisplayManager::class.java)
         store = ConnectionStore(this)
+        gameSession = GameSession(this)
+        gameCare = GameCarePanel(this).apply { restoreState(state?.getBundle("game-care")) }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
@@ -58,6 +62,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         ThorpilotWidget.destination(intent)?.let { go(it) }
     }
     override fun onSaveInstanceState(out: Bundle) {
+        out.putBundle("game-care", gameCare.saveState())
         out.putString("page", page)
         out.putString("requests", requestText)
         out.putString("request-identity", store.identity)
@@ -156,15 +161,24 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id
+            item.isSelected = page == id || (page == "care" && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page == "care" && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page == "care" && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
             "chat" -> body.addView(chatPanel.createView(this))
             "device" -> devicePage()
+            "care" -> {
+                val actions = horizontal(this)
+                addWeighted(actions, utilityButton(this, "My Thor") { go("device") }, 1f, 12)
+                if (gameSession.lastPackage.isNotBlank()) {
+                    addWeighted(actions, utilityButton(this, "Return to ${playAppName(gameSession.lastPackage)}") { launchPlayApp(gameSession.lastPackage) })
+                }
+                body.addView(actions)
+                body.addView(gameCare.createView(this))
+            }
             "requests" -> requestsPage()
             "settings" -> settingsPage()
             else -> workspacePage()
@@ -188,8 +202,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page == "care" && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page == "care" && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))
@@ -209,6 +223,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         setContentView(root)
     }
     private fun toggleCompanion() {
+        if (gameSession.yielded) {
+            reclaimCompanion()
+            return
+        }
         lowerEnabled = !lowerEnabled
         getPreferences(MODE_PRIVATE).edit().putBoolean("lower", lowerEnabled).apply()
         showCompanion(); render()
@@ -231,6 +249,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }, LinearLayout.LayoutParams(dp(this, 230), dp(this, 48)).apply { topMargin = dp(this@MainActivity, 10) })
         if (wide) scene.addView(introduction, LinearLayout.LayoutParams(0, -2, 1f)) else scene.addView(introduction)
         body.addView(scene)
+        sessionBar()
         val dock = horizontal(this).apply {
             background = PilotGlass(dp(this@MainActivity, 24).toFloat())
             setPadding(dp(context, 16), dp(context, 12), dp(context, 16), dp(context, 12))
@@ -244,9 +263,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         device.addView(status)
         addWeighted(dock, device, 1f, 18)
         addWeighted(dock, utilityButton(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
-        addWeighted(dock, utilityButton(this, if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
+        addWeighted(dock, utilityButton(this, if (gameSession.yielded) "Reclaim screen" else if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
         body.addView(dock)
-        body.addView(label(this, "Touch or D-pad to explore     •     Device tuning is still being built", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
+        body.addView(utilityButton(this, "Game care · track a graphics experiment") { go("care") })
+        body.addView(label(this, "Touch or D-pad to explore     •     Changes stay in your control", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }
     private fun requestsPage() {
         val heading = horizontal(this)
@@ -269,6 +289,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         addWeighted(title, label(this, "Meet your ${Build.MODEL}", 25f, true))
         title.addView(label(this, "Android ${Build.VERSION.RELEASE}", 13f).apply { setTextColor(muted) })
         body.addView(title)
+        sessionBar()
         val screens = horizontal(this).apply { gravity = Gravity.TOP }
         displays.displays.forEachIndexed { index, display ->
             val mode = display.mode
@@ -284,11 +305,60 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         listOf("Cocoon" to "rip.moth.cocoonshell", "Azahar" to "org.azahar_emu.azahar", "melonDualDS" to "me.magnum.melondualds").forEachIndexed { index, (name, pkg) ->
             val intent = packageManager.getLaunchIntentForPackage(pkg)
             addWeighted(apps, button(this, if (intent == null) "$name • unavailable" else "Open $name") {
-                if (intent != null) startActivity(intent)
+                if (intent != null) launchPlayApp(pkg)
             }.apply { isEnabled = intent != null; alpha = if (intent == null) .5f else 1f }, 1f, if (index < 2) 10 else 0)
         }
         body.addView(apps)
-        body.addView(label(this, "Opening an app releases the companion display for your game.", 12f).apply { setTextColor(muted) })
+        body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
+        body.addView(button(this, "Game care") { go("care") })
+    }
+    private fun playAppName(pkg: String) = when (pkg) {
+        "org.azahar_emu.azahar" -> "Azahar"
+        "me.magnum.melondualds" -> "melonDualDS"
+        "rip.moth.cocoonshell" -> "Cocoon"
+        else -> "emulator"
+    }
+    private fun launchPlayApp(pkg: String) {
+        val launch = packageManager.getLaunchIntentForPackage(pkg)
+        if (launch == null || pkg !in GameSession.ALLOWED_PACKAGES) {
+            Toast.makeText(this, "This app is not available on your device.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val previous = try { gameSession.begin(pkg) } catch (_: RuntimeException) {
+            Toast.makeText(this, "Could not save the screen handoff. Please try again.", Toast.LENGTH_LONG).show()
+            return
+        }
+        companion?.dismiss()
+        companion = null
+        try {
+            startActivity(launch)
+            render()
+        } catch (_: RuntimeException) {
+            val restored = runCatching { gameSession.rollback(previous) }.getOrDefault(false)
+            if (restored) showCompanion()
+            render()
+            Toast.makeText(this, if (restored) "Could not open ${playAppName(pkg)}. Your screen layout was restored."
+                else "Could not open ${playAppName(pkg)}. Reclaim the companion screen when ready.", Toast.LENGTH_LONG).show()
+        }
+    }
+    private fun reclaimCompanion() {
+        try { gameSession.reclaim() } catch (_: RuntimeException) {
+            Toast.makeText(this, "Could not save the screen preference. Please try again.", Toast.LENGTH_LONG).show()
+            return
+        }
+        showCompanion(); render()
+    }
+    private fun sessionBar() {
+        if (gameSession.lastPackage.isBlank()) return
+        val box = surface(this).apply { setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 10)) }
+        val app = playAppName(gameSession.lastPackage)
+        box.addView(label(this, if (gameSession.yielded) "Room for your game" else "Back to your play space", 16f, true))
+        box.addView(label(this, if (gameSession.yielded) "Thorpilot is leaving the other screen free. Resume $app, or reclaim it when you’re ready." else "Open $app again. Your emulator manages the game session.", 12f).apply { setTextColor(muted) })
+        val actions = horizontal(this)
+        addWeighted(actions, utilityButton(this, "Return to $app") { launchPlayApp(gameSession.lastPackage) }, 1f, 12)
+        if (gameSession.yielded) addWeighted(actions, utilityButton(this, "Reclaim companion") { reclaimCompanion() })
+        box.addView(actions)
+        body.addView(box)
     }
     private fun settingsPage() {
         body.addView(label(this, "Your library, your server", 24f, true))
@@ -365,7 +435,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
             .firstOrNull { it.displayId != display?.displayId }
-        if (!active || !lowerEnabled || target == null) {
+        if (!active || !lowerEnabled || gameSession.yielded || target == null) {
             companion?.dismiss(); companion = null; return
         }
         if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == (if (page == "chat") "chat" else "dock")) return

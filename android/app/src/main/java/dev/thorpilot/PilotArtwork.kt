@@ -6,15 +6,33 @@ import android.graphics.drawable.Drawable
 /** Original vector landscape; no launcher wallpaper or third-party art. */
 class PilotWallpaper : Drawable() {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var scene: Picture? = null
+    private val layerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun onBoundsChange(bounds: Rect) {
+        scene = if (bounds.isEmpty) null else Picture().apply {
+            val recording = beginRecording(bounds.width(), bounds.height())
+            paintScene(recording)
+            endRecording()
+        }
+    }
     override fun draw(canvas: Canvas) {
+        val cached = scene ?: return
+        val save = if (layerPaint.alpha == 255 && layerPaint.colorFilter == null) canvas.save() else
+            canvas.saveLayer(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat(), layerPaint)
+        canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
+        canvas.drawPicture(cached)
+        canvas.restoreToCount(save)
+    }
+    private fun paintScene(canvas: Canvas) {
+
         val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
         paint.alpha = 255
         paint.shader = LinearGradient(0f, 0f, w, h, intArrayOf(0xff020609.toInt(), 0xff061922.toInt(), 0xff100d29.toInt()), null, Shader.TileMode.CLAMP)
-        canvas.drawRect(bounds, paint)
+        canvas.drawRect(0f, 0f, w, h, paint)
         paint.shader = RadialGradient(w*.75f, h*.15f, w*.55f, intArrayOf(0x4027e4c5, Color.TRANSPARENT), null, Shader.TileMode.CLAMP)
-        canvas.drawRect(bounds, paint)
+        canvas.drawRect(0f, 0f, w, h, paint)
         paint.shader = RadialGradient(w*.1f, h*.9f, w*.55f, intArrayOf(0x503c38ce, Color.TRANSPARENT), null, Shader.TileMode.CLAMP)
-        canvas.drawRect(bounds, paint); paint.shader = null
+        canvas.drawRect(0f, 0f, w, h, paint); paint.shader = null
         // A quiet aurora on the horizon leaves the content area near-black.
         val aurora = Path().apply {
             moveTo(0f,h*.75f); cubicTo(w*.27f,h*.28f,w*.62f,h*1.12f,w,h*.53f)
@@ -44,8 +62,8 @@ class PilotWallpaper : Drawable() {
         ridge(0x782c2456, .98f,.26f,1.5f)
         ridge(0xe0020810.toInt(),1.05f,.18f,3f)
     }
-    override fun setAlpha(alpha: Int) { paint.alpha=alpha }
-    override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter=filter }
+    override fun setAlpha(alpha: Int) { layerPaint.alpha=alpha; invalidateSelf() }
+    override fun setColorFilter(filter: ColorFilter?) { layerPaint.colorFilter=filter; invalidateSelf() }
     @Deprecated("Deprecated in Java") override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
 

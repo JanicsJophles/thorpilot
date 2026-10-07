@@ -1,0 +1,48 @@
+# Game care
+
+Game care is a local experiment journal for improving how a game looks and plays. The current Android `GameCarePanel` has three stages: **Baseline**, **Trial**, and **Result**. It does not apply emulator settings, capture performance counters, or restore a configuration automatically.
+
+## Available now
+
+Baseline records the game, a symptom category (Texture, Flicker, Shadows, Stutter or Other), a repeatable scene and a before observation. Trial records the original setting and one proposed manual change. Result records Untested, Better, Same or Worse plus an after observation. Device and detected Azahar version accompany the note; version detection is not proof of the active game's settings.
+
+Use **Save local note** to persist an entry. Saved notes can be reopened and edited. The app keeps up to 30 most recently saved experiments in its private preferences; saving beyond that limit replaces the oldest note. Draft text and the selected step participate in Android activity-state restoration. Unsaved text is not a durable experiment record: force-stop, discarding the task, opening another note or starting a new experiment can discard it. Save the original setting before leaving to run a trial. These notes are local plaintext inside the Android app sandbox, with no network submission by this feature. They are not an emulator backup.
+
+No measured game-FPS improvement or verified game-specific graphical fix is claimed by this feature.
+
+## A useful A/B comparison
+
+1. **Define the symptom and scene.** Name the object or effect, camera angle, location and action that reproduce it. Record game revision, emulator build and graphics backend when known. “Blue character becomes pale during this animation” is more useful than “graphics bad.”
+2. **Record A before changing anything.** Note the exact original setting and whether the defect is persistent or intermittent. Use the same save, route or scene for repeat observations; avoid creating a new game-progress difference merely to test rendering. Save the baseline note.
+3. **Change one value manually.** Keep resolution, backend, driver, power mode and other settings fixed unless one of those is the selected variable. Follow the emulator's restart requirements. Do not replace several settings with an unverified preset.
+4. **Repeat B under comparable conditions.** Match the scene, duration, charger/power conditions and approximate device temperature. Shader compilation can make a first visit unusually slow; distinguish cold-cache from repeated warm runs rather than comparing unlike passes.
+5. **Record correctness and responsiveness separately.** A higher FPS reading does not compensate for missing textures, wrong colors or broken shadows. If the visual defect improved but stutter increased, record both rather than declaring an unqualified win. Repeat the observation when practical.
+6. **Restore A if worse or inconclusive.** Manually restore the recorded original value and repeat the scene. This A/B/A check helps distinguish a setting effect from a changing workload. The journal's original-setting field is a reminder, not a verified backup or rollback button.
+
+Use this rubric in the before/after text:
+
+| Aspect | Record |
+| --- | --- |
+| Texture/color | Which surface or character is wrong; missing, corrupted, unusually bright or incorrect color; persistent or intermittent. |
+| Flicker/shadows | Which element changes unexpectedly and under what camera motion; whether the defect is reproducible. |
+| Stutter/pacing | Where pauses occur, approximate frequency, and whether repeated visits change them. |
+| Gameplay/audio | Input response, audio breakup, hangs or newly introduced faults. |
+| Evidence limits | Scene differences, unknown original values, missing counters, warm-up differences or uncertain reproduction. |
+
+Leave the result **Untested** until a comparison has actually occurred. Better/Same/Worse is a user observation, not an automatically scored benchmark. A mixed result belongs in the written observation.
+
+## Azahar version boundary
+
+Source inspection of official **Azahar 2126.0** found that Android's settings saver still leaves the per-game branch unimplemented, while its native reader loads the selected user directory's `config/config.ini`. An existing custom-game INI reader is not evidence that writing such a file provides working Android per-title settings. Treat manual settings changes in this version as potentially affecting other games. [Android settings model](https://github.com/azahar-emu/azahar/blob/2126.0/src/android/app/src/main/java/org/citra/citra_emu/features/settings/model/Settings.kt), [native configuration reader](https://github.com/azahar-emu/azahar/blob/2126.0/src/android/app/src/main/jni/config.cpp).
+
+Accurate Multiplication is a possible single-variable graphics experiment when a reproducible shader defect exists. The official Android description says it may fix graphical bugs at a performance cost. It is not a universal fix or a tested recommendation for every device/title. The 2126.0 reader uses `[Renderer] shaders_accurate_mul`; preserve the actual original value instead of assuming a default. These references explain the setting, not a request to edit configuration files. [Official setting descriptions](https://github.com/azahar-emu/azahar/blob/2126.0/src/android/app/src/main/res/values/strings.xml).
+
+Azahar's own performance overlay receives game FPS, emulation speed and timing values from its emulator core. Thorpilot currently does not collect those counters. Display refresh rate in Hz describes the screen and must never be relabeled game FPS. If a user transcribes an overlay value, identify its source and observation interval; do not invent averages or low-percentile frame statistics from a single reading. [Native performance interface](https://github.com/azahar-emu/azahar/blob/2126.0/src/android/app/src/main/jni/native.cpp), [counter implementation](https://github.com/azahar-emu/azahar/blob/2126.0/src/core/perf_stats.cpp).
+
+## Future configuration adapter
+
+An adapter that applies and restores settings remains proposed. It needs an explicit supported emulator/build matrix, narrow setting allowlists, a separate storage grant, exact original-byte backup and hashes, validation before writing, readback verification and a durable recovery journal. It must refuse conflicts when the configuration changed since the snapshot, preserve unrelated settings, and recover safely after process/device interruption. A stopped emulator is required when editing a file that the emulator may also save.
+
+Storage Access Framework access to a ROM directory does not grant another app's private files or an unrelated configuration directory. Providers also differ in write/rename behavior; an adapter must establish its actual recovery guarantees rather than assume filesystem-atomic writes. For a build with only global settings, any temporary game profile must clearly disclose its global effect and verified restoration status. [Android document access](https://developer.android.com/training/data-storage/shared/documents-files).
+
+Until those guarantees are implemented and tested, Game care remains a manual, reversible-by-the-user journal. Neither saving a note nor selecting Better changes an emulator.
