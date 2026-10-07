@@ -42,10 +42,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private var page = "home"
     private lateinit var requests: RequestPanel
     private var lowerEnabled = true
+    private var companionSuppressed = false
     private var active = false
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        companionSuppressed = state?.getBoolean("companion-suppressed")
+            ?: ThorpilotTileService.suppressesCompanion(intent)
         displays = getSystemService(DisplayManager::class.java)
         store = ConnectionStore(this)
         gameSession = GameSession(this)
@@ -161,11 +164,19 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        ThorpilotWidget.destination(intent)?.let { go(it) }
+        val tileEntry = ThorpilotTileService.suppressesCompanion(intent)
+        if (tileEntry) {
+            companionSuppressed = true
+            showCompanion()
+        }
+        ThorpilotWidget.destination(intent)?.let {
+            if (tileEntry && it == page) render() else go(it)
+        }
     }
     override fun onSaveInstanceState(out: Bundle) {
         out.putBundle("game-care", gameCare.saveState())
         out.putString("page", page)
+        out.putBoolean("companion-suppressed", companionSuppressed)
         super.onSaveInstanceState(out)
     }
     override fun onStart() {
@@ -283,6 +294,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
         }
         body.removeAllViews()
+        if (companionSuppressed) {
+            body.addView(label(this, "Opened from Quick Settings. Your game may pause; the companion screen stays free until you choose to use it.", 12f).apply { setTextColor(muted) })
+        }
         when(page) {
             "chat" -> body.addView(chatPanel.createView(this))
             "device" -> devicePage()
@@ -362,7 +376,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         setContentView(root)
     }
     private fun toggleCompanion() {
-        if (gameSession.yielded) {
+        if (gameSession.yielded || companionSuppressed) {
             reclaimCompanion()
             return
         }
@@ -402,7 +416,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         device.addView(status)
         addWeighted(dock, device, 1f, 18)
         addWeighted(dock, utilityButton(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
-        addWeighted(dock, utilityButton(this, if (gameSession.yielded) "Reclaim screen" else if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
+        addWeighted(dock, utilityButton(this, if (gameSession.yielded || companionSuppressed) "Reclaim screen" else if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
         body.addView(dock)
         body.addView(utilityButton(this, "Game care · track a graphics experiment") { go("care") })
         body.addView(label(this, "Touch or D-pad to explore     •     Changes stay in your control", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
@@ -414,6 +428,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         title.addView(label(this, "Android ${Build.VERSION.RELEASE}", 13f).apply { setTextColor(muted) })
         body.addView(title)
         body.addView(utilityButton(this, "Set up my handheld") { go("setup") })
+        body.addView(utilityButton(this, "Add Quick Settings tile") { ThorpilotTileService.requestAdd(this) })
         sessionBar()
         val screens = horizontal(this).apply { gravity = Gravity.TOP }
         displays.displays.forEachIndexed { index, display ->
@@ -485,6 +500,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             Toast.makeText(this, "Could not save the screen preference. Please try again.", Toast.LENGTH_LONG).show()
             return
         }
+        companionSuppressed = false
+        lowerEnabled = true
+        getPreferences(MODE_PRIVATE).edit().putBoolean("lower", true).apply()
         showCompanion(); render()
     }
     private fun sessionBar() {
@@ -495,7 +513,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         box.addView(label(this, if (gameSession.yielded) "Thorpilot is leaving the other screen free. Resume $app, or reclaim it when you’re ready." else "Open $app again. Your emulator manages the game session.", 12f).apply { setTextColor(muted) })
         val actions = horizontal(this)
         addWeighted(actions, utilityButton(this, "Return to $app") { launchPlayApp(gameSession.lastPackage) }, 1f, 12)
-        if (gameSession.yielded) addWeighted(actions, utilityButton(this, "Reclaim companion") { reclaimCompanion() })
+        if (gameSession.yielded || companionSuppressed) addWeighted(actions, utilityButton(this, "Reclaim companion") { reclaimCompanion() })
         box.addView(actions)
         body.addView(box)
     }
@@ -553,7 +571,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
             .firstOrNull { it.displayId != display?.displayId }
-        if (!active || !lowerEnabled || gameSession.yielded || target == null) {
+        if (!active || !lowerEnabled || companionSuppressed || gameSession.yielded || target == null) {
             companion?.dismiss(); companion = null; return
         }
         if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == (if (page == "chat") "chat" else "dock")) return

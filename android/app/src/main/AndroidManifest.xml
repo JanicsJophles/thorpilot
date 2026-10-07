@@ -18,6 +18,13 @@
             </intent-filter>
         </activity>
         <service android:name=".ThorDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
+        <service android:name=".ThorpilotTileService" android:exported="true"
+            android:label="Thorpilot" android:icon="@drawable/ic_thorpilot_tile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <receiver android:name=".ThorpilotWidget" android:exported="false" android:label="Thorpilot companion">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
