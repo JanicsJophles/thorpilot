@@ -42,6 +42,17 @@ object RequestChecks {
         check(!RequestClient.parse("<html>sign in</html>").isSuccess)
         check(!RequestClient.parse("""{"items":[null]}""").isSuccess)
         check(RequestClient.parse("""{"items":[]}""").isSuccess)
+        val warning = RequestClient.parse("""{"items":[{"game":"Example","status":"failed","detail":"No acceptable release"}],"client_warnings":[{"client":"qBittorrent","status":"dns-errors","detail":"Trackers report DNS failures."}]}""")
+        check(warning.isSuccess && warning.clientWarnings.size == 1)
+        check(warning.summary().contains("separate from each request"))
+        check(warning.summary().contains("DNS failures") && warning.rows.single().detail == "No acceptable release")
+        val emptyWithWarning = RequestClient.parse("""{"items":[],"client_warnings":[{"client":"qBittorrent","detail":"DNS unavailable"},null,{}]}""")
+        check(emptyWithWarning.clientWarnings.size == 1 && emptyWithWarning.summary().contains("No requests yet."))
+        check(RequestClient.parse("""{"items":[],"client_warnings":[]}""").summary() == "No requests yet.")
+        check(RequestClient.parse("""{"items":[],"client_warnings":"bad shape"}""").isSuccess)
+        val manyWarnings = (1..10).joinToString(",") { """{"client":"Example","detail":"${"x".repeat(1000)}"}""" }
+        val boundedWarnings = RequestClient.parse("""{"items":[],"client_warnings":[$manyWarnings]}""")
+        check(boundedWarnings.clientWarnings.size == 5 && boundedWarnings.clientWarnings.all { it.length <= 552 })
         check(RequestClient { error("Must not open network") }.fetch("https://example.com", "bad\r\nkey").message != null)
     }
     private class FakeConnection(private val status: Int, body: String) : HttpsURLConnection(URL("https://example.com")) {
