@@ -16,6 +16,7 @@
 
 - [ ] Inventory Cocoon version, device variant, firmware and emulator packages
 - [ ] Refine native UI and introduce Compose where useful
+- [ ] Compact summon surface, Quick Settings entry, and optional overlay after emulator focus testing ([design constraints](copilot-summon.md))
 - [x] Android widget and Cocoon hosted-tap verification (resize/controller checks remain)
 - [ ] Explicit pairing and scoped device inventory
 - [ ] Stock ROMarr adapter and documented capability negotiation

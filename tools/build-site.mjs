@@ -6,6 +6,7 @@ import { marked } from 'marked';
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'artifacts/site');
 const pages = [
+  ['copilot-summon', 'Summon the copilot', 'A compact in-game interaction proposal, Android limits, and lightweight motion.'],
   ['device-downloads', 'Download to Thor', 'Bring your own library to SD or internal storage with resumable transfers and checksum verification.'],
   ['configuration-snapshots', 'Configuration snapshots', 'Exact local backups, explicit restoration, and the limits of global emulator settings.'],
   ['game-care', 'Game care', 'A manual graphics experiment journal: baseline, trial, observation and rollback.'],
