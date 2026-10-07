@@ -2,7 +2,7 @@
 
 A dual-screen emulation companion for Android handhelds, designed to live alongside Cocoon.
 
-**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, launches installed emulators, and reads requests from an optional server. It does not yet run an LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
+**Early native Android companion and browser design prototype.** The Android app discovers physical displays, offers a touch companion on a secondary display, inspects the device, launches installed emulators, and reads requests from an optional server. Its optional server-backed chat offers game suggestions with catalog matches; it does not run a local LLM, tune emulators, or download games. The browser concept chat uses scripted responses.
 
 ## Android app
 
@@ -17,7 +17,7 @@ adb shell am start -n dev.thorpilot/.MainActivity
 
 Launch Thorpilot from Cocoon like any other installed app. The main display shows the workspace; a presentation-capable secondary display shows companion actions. Display IDs are discovered at runtime. Release the companion from either screen, or leave the app to return the second screen to other apps. Single-screen devices keep every action in the main workspace.
 
-Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native AI chat, a launcher widget, scoped SD-card access, and tuning are still on the roadmap.
+Connection settings accept an HTTPS ROMarr server and API key. Keys are encrypted using Android Keystore and app backup is disabled. The optional custom `/api/v1/game-requests` adapter is required; redirects are rejected and no write requests are issued. Native chat uses the optional custom `/api/v1/game-chat` endpoint, with bounded local conversation/draft persistence. A launcher widget, scoped SD-card access, and tuning are still on the roadmap.
 
 See [device testing](docs/device-testing.md) for the ADB development loop.
 
@@ -55,3 +55,7 @@ The initial adapter targets the custom `/api/v1/game-requests` endpoint from our
 See [architecture](docs/architecture.md), [design direction](docs/design.md), and [roadmap](docs/roadmap.md). Contributions are welcome; discuss larger changes in an issue first. Keep tests passing and separate observed device facts from model suggestions. Never commit credentials, ROMs, BIOS files, saves or personal logs.
 
 MIT licensed. Not affiliated with AYN, Cocoon, emulator authors or game publishers.
+
+## Development workflow
+
+Changes go through pull requests with required `test` and `android` checks. Trusted repository pushes run on the dedicated Atlas self-hosted runner; public fork code does not execute on it. See [CONTRIBUTING.md](CONTRIBUTING.md). No private service configuration is included.

@@ -36,3 +36,9 @@ adb shell am instrument -w dev.thorpilot.test/dev.thorpilot.DeviceChecks
 The small instrumentation runner prints PASS or FAIL. It uses a separate test preference file and checks HTTPS URL validation, actual Android Keystore encryption/round-trip, clearing the connection, device inventory, and native navigation. It does not alter the user's saved connection. CI builds the test APK; running it requires a connected device or emulator.
 
 First hardware pass: AYN Thor on Android 13, two internal displays. Both rendered; secondary-display touches changed the main workspace. Releasing the presentation persisted across restart. Going Home removed the presentation and returning restored it when enabled. Keystore and navigation checks passed. Live server connectivity, physical controller input, rotation, other Android versions, and emulator launch/resume compatibility still need dedicated testing.
+
+## Repeatable workstation loop
+
+`python3 tools/device.py inspect` discovers the device and physical screens. After building both APKs, `python3 tools/device.py test` installs and runs checks, and fails unless the runner reports PASS. `install` launches the app; `capture` saves every physical screen into ignored `artifacts/device/`. Use `--serial` only when multiple devices are connected. No fixed screen IDs are baked into the helper.
+
+The native test suite also checks chat parsing/history, bounded request transport, redirects, malformed responses, credential isolation, and repeated tab navigation retaining the same shell.

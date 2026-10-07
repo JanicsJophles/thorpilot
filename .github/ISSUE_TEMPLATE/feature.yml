@@ -1,0 +1,24 @@
+name: Feature idea
+description: Suggest a way to make the companion more useful.
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: "Describe the task or frustration, and which screen or device is involved."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed experience
+      description: "What would a useful result look like? Alternatives are welcome."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Connections and permissions
+      description: "Would this need a server, device access, or changes to files/settings? Do not include credentials."

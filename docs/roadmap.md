@@ -17,7 +17,8 @@
 - [ ] Android widget and Cocoon launch/display verification
 - [ ] Explicit pairing and scoped device inventory
 - [ ] Stock ROMarr adapter and documented capability negotiation
-- [ ] Provider-backed chat grounded in observed state
+- [x] Optional server-backed game discovery chat with catalog matches
+- [ ] General device assistant grounded in scoped device inventory
 
 ## Then: complete useful workflows
 
