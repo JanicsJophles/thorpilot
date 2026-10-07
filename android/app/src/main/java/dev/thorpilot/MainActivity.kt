@@ -47,7 +47,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
-        requestText = state?.getString("requests") ?: requestText
+        val initialRequests = if (store.url.isBlank()) requestText else "Refresh to load requests from your connected server."
+        requestText = if (state?.getString("request-identity") == store.identity)
+            state.getString("requests") ?: initialRequests else initialRequests
         render()
     }
     override fun onNewIntent(intent: android.content.Intent) {
@@ -58,6 +60,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onSaveInstanceState(out: Bundle) {
         out.putString("page", page)
         out.putString("requests", requestText)
+        out.putString("request-identity", store.identity)
         super.onSaveInstanceState(out)
     }
     override fun onStart() {
@@ -297,7 +300,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI or android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
         }
         val token = EditText(this).apply {
-            hint = "API key (leave blank to keep saved key)"
+            hint = "API key (blank keeps key for this server only)"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             contentDescription = "ROMarr API key"; isSingleLine = true
             imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI or android.view.inputmethod.EditorInfo.IME_ACTION_DONE
@@ -310,7 +313,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
         body.addView(button(this, "Save connection") {
             try {
-                store.save(address.text.toString(), token.text.toString().ifBlank { store.token() })
+                store.save(address.text.toString(), token.text.toString())
+                chatPanel.onConnectionChanged()
                 generation++
                 requestText = "Connection saved. Refresh to load requests."
                 go("requests")
@@ -321,7 +325,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             }
         })
         body.addView(button(this, "Forget connection") {
-            generation++; store.clear(); requestText = "Connect your own ROMarr server to see your requests here."; render()
+            generation++; store.clear(); chatPanel.onConnectionChanged(); requestText = "Connect your own ROMarr server to see your requests here."; render()
         })
     }
     private fun fetchRequests() {

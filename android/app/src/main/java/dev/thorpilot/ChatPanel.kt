@@ -15,26 +15,34 @@ import java.util.concurrent.Executors
 
 /** The same conversation can render on the workspace or a secondary display. */
 class ChatPanel(private val activity: Activity, private val store: ConnectionStore, private val connect: () -> Unit) {
-    private val history = ChatHistory(activity)
-    private val initial = history.load()
-    private var messages = initial.messages
-    private var draft = initial.draft
-    private var busy = false
+    private val conversation = ChatConversation(store, ChatHistory(activity))
+    private val messages get() = conversation.messages
+    private val draft get() = conversation.draft
+    private val busy get() = conversation.busy
     private var error: String? = null
     private var closed = false
-    private val worker = Executors.newSingleThreadExecutor()
+    private var worker = Executors.newSingleThreadExecutor()
     private val roots = mutableListOf<WeakReference<LinearLayout>>()
     private val ink = Color.rgb(242, 246, 252)
     private val muted = Color.rgb(175, 193, 208)
     private val iris = Color.rgb(108, 247, 208)
 
     fun createView(context: Context, compact: Boolean = false): View = LinearLayout(context).apply {
+        syncConnection()
         orientation = LinearLayout.VERTICAL
         tag = compact
         roots.removeAll { it.get() == null || it.get()?.isAttachedToWindow == false }
         roots.add(WeakReference(this))
         draw(this)
     }
+    private fun syncConnection(): Boolean {
+        if (!conversation.rebind()) return false
+        worker.shutdownNow()
+        worker = Executors.newSingleThreadExecutor()
+        error = null
+        return true
+    }
+    fun onConnectionChanged() { if (syncConnection()) refresh() }
     fun close() { closed = true; worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun surface(c: Context, color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0x304faaa7) }
@@ -65,10 +73,14 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             android.app.AlertDialog.Builder(activity).setTitle("Clear this conversation?")
                 .setMessage("This removes the conversation saved on this handheld.")
                 .setNegativeButton("Keep", null).setPositiveButton("Clear") { _, _ ->
-                    if (!busy) { messages = emptyList(); draft = ""; error = null; history.clear(); refresh() }
+                    conversation.clear()
+                    worker.shutdownNow()
+                    worker = Executors.newSingleThreadExecutor()
+                    error = null
+                    refresh()
                 }.show()
         }.apply {
-            isEnabled = !busy; textSize = 12f
+            textSize = 12f
             background = android.graphics.drawable.InsetDrawable(surface(c, Color.rgb(16, 32, 46)), 0, dp(c, 7), 0, dp(c, 7))
             layoutParams = LinearLayout.LayoutParams(dp(c, 70), dp(c, 48))
         })
@@ -81,8 +93,8 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         }
         if (messages.isEmpty()) {
             root.addView(text(c, "What are you in the mood for?", 18f, true))
-            root.addView(action(c, "A cozy game for a short session") { draft = "Find me a cozy game for short sessions on Nintendo DS or PSP."; history.saveDraft(draft); refresh() })
-            root.addView(action(c, "Something like my favorites") { draft = "Help me find a game like my favorites. Ask me what I enjoy."; history.saveDraft(draft); refresh() })
+            root.addView(action(c, "A cozy game for a short session") { conversation.updateDraft("Find me a cozy game for short sessions on Nintendo DS or PSP."); refresh() })
+            root.addView(action(c, "Something like my favorites") { conversation.updateDraft("Help me find a game like my favorites. Ask me what I enjoy."); refresh() })
         }
         if (compact && messages.isNotEmpty()) root.addView(text(c, "Your conversation and game ideas appear on the other screen.", 14f))
         for (message in if (compact) emptyList() else messages.takeLast(12)) {
@@ -103,6 +115,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         }
         error?.let { root.addView(text(c, it, 14f).apply { setTextColor(Color.rgb(255, 158, 164)) }) }
         if (busy) root.addView(text(c, "Finding ideas and checking the catalog…", 14f).apply { setTextColor(iris) })
+        val editorIdentity = conversation.identity
         val input = EditText(c).apply {
             hint = "Tell me what you like…"; contentDescription = "Message Thorpilot"
             textSize = 15f; setTextColor(ink); setHintTextColor(muted); setText(draft)
@@ -115,7 +128,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             isEnabled = !busy
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { draft = s.toString(); history.saveDraft(draft) }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { conversation.updateDraft(s.toString(), editorIdentity) }
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
@@ -124,36 +137,25 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             isEnabled = !busy
             layoutParams = LinearLayout.LayoutParams(dp(c, 170), dp(c, 48)).apply { gravity = Gravity.END; topMargin = dp(c, 4); bottomMargin = dp(c, 4) }
         })
-        if (!busy && messages.lastOrNull()?.role == "user") root.addView(action(c, "Retry last message") { submit(messages) })
+        if (!busy && messages.lastOrNull()?.role == "user") root.addView(action(c, "Retry last message") { submit(retry = true) })
     }
-    private fun send() {
-        if (busy || draft.isBlank()) return
-        messages = (messages + ChatMessage("user", draft.trim())).takeLast(20)
-        draft = ""
-        history.save(messages, draft)
-        submit(messages)
-    }
-    private fun submit(conversation: List<ChatMessage>) {
-        if (busy || closed) return
-        val base = store.url
-        val token = try { store.token() } catch (_: Exception) {
+    private fun send() { submit(retry = false) }
+    private fun submit(retry: Boolean) {
+        if (closed) return
+        if (syncConnection()) { refresh(); return }
+        val pending = try { if (retry) conversation.retry() else conversation.sendDraft() } catch (_: Exception) {
             error = "Saved key is unavailable. Save your connection again."; refresh(); return
-        }
-        busy = true; error = null; refresh()
+        } ?: return
+        error = null
+        refresh()
         worker.execute {
-            val result = runCatching { ChatClient().send(base, token, conversation) }
+            val result = runCatching { ChatClient().send(pending.credentials.url, pending.credentials.token, pending.messages) }
             activity.runOnUiThread {
                 if (closed || activity.isDestroyed) return@runOnUiThread
-                busy = false
-                if (store.url != base || runCatching { store.token() }.getOrDefault("") != token) {
-                    error = "Connection changed. The previous server's response was discarded."
-                } else result.fold(onSuccess = { reply ->
-                    val note = if (reply.unverified > 0) "\n\nSome suggestions could not be verified in the catalog." else ""
-                    messages = (messages + ChatMessage("assistant", reply.reply + note, reply.games)).takeLast(20)
-                    history.save(messages, draft)
-                }, onFailure = {
-                    error = if (it is ChatException) it.message else "Chat is unavailable. Try again shortly."
-                })
+                if (!conversation.complete(pending, result.getOrNull())) { refresh(); return@runOnUiThread }
+                error = result.exceptionOrNull()?.let {
+                    if (it is ChatException) it.message else "Chat is unavailable. Try again shortly."
+                }
                 refresh()
             }
         }
