@@ -49,7 +49,7 @@ Build and lint first, then run instrumentation on the identified Thor using an e
 
 For a release candidate, walk through:
 
-1. Enter from Cocoon's widget, visit each tab, and return to Cocoon.
+1. Enter from Cocoon's normal Thorpilot app cell (or the optional widget), visit each tab, and return to Cocoon.
 2. Open a saved conversation, navigate away/back, and restart. Confirm history and retry behavior without submitting accidental duplicate messages.
 3. Refresh requests against a configured test service. Check loading, empty, unavailable, and failed states; distinguish download metadata from game data.
 4. Release and reclaim the second screen, then leave and resume the app. Confirm it does not cover an emulator after yielding.
@@ -86,3 +86,19 @@ This is a user-confirmed result for that scene, not a full-game compatibility cl
 On 2026-10-07, a physical Thor selected two synthetic INIs through Android's real document picker. The per-game file explicitly selected Balanced GPU mode and inherited resolution. Before selecting global configuration, resolution showed Unknown. The global fixture deliberately paired `resolution_setup=12` with `resolution_setup\\default=true`; the inspector correctly displayed 1× from the reviewed compiled default rather than the stale raw number. GPU mode remained Balanced from the per-game override. Clear removed both selections. These were fixtures under `Documents/ThorpilotTest/EdenInspection`, not live emulator configuration or a game-performance test.
 
 Local JVM tests cover default precedence, global inheritance, missing global context, exact-byte hashes, supported-build boundaries, malformed/oversized documents, duplicate keys and invalid values. The inspector does not write files.
+
+## Distinguishing firmware OLED protection from app flicker
+
+The tested Thor firmware has **OLED Screen Protection** controls for pixel
+shifting and pixel refreshing. Its observed defaults were a one-pixel shift
+after 3 seconds of static content and a visible refresher after 30 seconds.
+Android window logs identify the latter as `Burn-in Protection Refresher` on
+both displays. These overlays are not Thorpilot rendering or a panel-fault diagnosis.
+
+On 2026-10-07, with the device owner's approval, the firmware UI saved a
+60-second shift threshold and a 300-second refresh threshold, retaining both
+enabled controls and the one-pixel radius. Reopening the settings confirmed
+both values. These are static-screen thresholds, not guaranteed recurring
+intervals or universal recommendations for every firmware. Use the firmware
+UI to apply changes live; writing a persisted setting alone may not update
+WindowManager. Thorpilot does not automatically change OLED protection.

@@ -2,6 +2,8 @@
 
 Open **My Thor → Library sync**. Choose the source ROMs folder and destination ROMs folder using Android’s folder picker. For an SD-to-internal copy, the source is the card’s ROMs folder and the destination is your existing internal ROMs folder (for example Cocoon/Games/ROMs). Android remembers access to those selected folders. No broad storage permission is requested.
 
+The directory reference is [Retro Game Corps’ ES-DE Directories v1.0](https://github.com/retrogamecorps/ES-DE-Directories/releases/tag/v1.0), based on ES-DE 3.4.0. Use its existing platform subfolders rather than creating a second directory convention. The template supplies folders; it does not supply games.
+
 Preview scans and hashes both selected libraries off the UI thread. Platform aliases map into existing folder names: Nintendo 3DS → n3ds, Nintendo DS → nds, PSP → psp, PlayStation → psx. Nested disc files keep their relative paths. Unknown platforms or misplaced formats require review.
 
 The preview distinguishes missing files, identical files (same path, size and SHA-256), conflicting content, and excluded files. Only **Copy missing files** writes data. It does not overwrite or remove existing files. Saves, configuration, artwork, archives and .3ds sources are excluded; n3ds accepts CIA. Existing .3ds games at the destination remain untouched. A copied CIA still requires installation through the emulator.
@@ -16,6 +18,16 @@ While Thorpilot is active, Android mount/eject events invalidate a preview and a
 
 Physical AYN Thor, Android 13, 2026-10-07: two synthetic local ROMs trees selected through the real Android picker. Preview reported one copy, one identical file and one conflict. The missing file copied with matching SHA-256; the conflicting file and a save file were unchanged. Android device checks passed, including native request parsing and navigation. JVM planner tests cover folder aliases, filename collisions, wrong formats, traversal, conflicts and exclusions.
 
-A real removable-card insertion/ejection cycle and a large transfer have not yet been verified. This feature is a local copy workflow, not a ROMarr downloader or a guarantee that every requested game is present. ROMarr’s server-library status and the handheld’s file inventory are separate facts.
+The same physical Thor subsequently mounted a real removable card. Both card
+and internal ROMs folders were selected through Android's picker. Preview
+reported 17 copies and no conflicts; the native flow copied and verified all
+17 files (about 9.24 GiB). An independent check found every destination file
+with the expected size, no leftover partials, and unchanged SHA-256 values
+for all seven pre-existing game, save, and state files.
+
+Removal during transfer, crash recovery and a complete eject/reinsert cycle
+remain unverified. This feature is a local copy workflow, not a ROMarr
+downloader or a guarantee that every requested game is present. ROMarr's
+server-library status and the handheld's file inventory are separate facts.
 
 Android access follows the [Storage Access Framework](https://developer.android.com/training/data-storage/shared/documents-files).
