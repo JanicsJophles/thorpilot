@@ -28,6 +28,9 @@ object RequestChecks {
         check(failed.summary().contains("Review this release") && failed.summary().contains("Client: Awaiting import"))
         check(RequestClient.parse("""{"items":[{"status":"imported"}]}""").summary().contains("does not confirm a copy"))
         check(RequestClient.parse("""{"items":[{"status":"new-server-state"}]}""").rows.single().statusLabel == "new-server-state")
+        val sameFailure = GameRequest("Example", "psp", "failed", "Incomplete data", null, true, "failed", "Incomplete data")
+        check(sameFailure.description().split("Incomplete data").size == 2)
+        check(!sameFailure.description().contains("before importing"))
         check(wire.getRequestProperty("X-Api-Key") == "dummy-test-key")
         check(!wire.instanceFollowRedirects && wire.disconnected)
         listOf(301, 401, 403, 404, 429, 500).forEach { code ->

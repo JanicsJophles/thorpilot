@@ -38,10 +38,10 @@ data class GameRequest(
     fun description(): String = buildList {
         if (detail.isNotBlank()) add(detail)
         if (status == "imported") add("In your server library. This does not confirm a copy on your Thor or SD card.")
-        if (reviewRequired) add("Review this release in ROMarr before importing it.")
-        if (clientStatus.isNotBlank()) add("Client: ${label(clientStatus)}${if (clientDetail.isBlank()) "" else " — $clientDetail"}")
-        if (status in setOf("failed", "import-failed", "interrupted"))
-            add("Open Your requests in ROMarr to review the cause and choose another release if needed.")
+        if (clientStatus.isNotBlank() && (clientStatus != status || clientDetail.trim() != detail.trim()))
+            add("Client: ${label(clientStatus)}${if (clientDetail.isBlank()) "" else " — $clientDetail"}")
+        if (reviewRequired || status in setOf("failed", "import-failed", "interrupted"))
+            add("Review this release in ROMarr before retrying.")
     }.joinToString("\n")
     companion object {
         fun label(status: String): String = when (status) {

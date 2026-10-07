@@ -366,6 +366,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         heading.addView(button(this, if (loading) "Refreshing…" else "Refresh") { fetchRequests() }.apply { isEnabled = !loading }, LinearLayout.LayoutParams(dp(this, 125), dp(this, 48)))
         body.addView(heading)
         body.addView(label(this, "Updates from your connected library server", 13f).apply { setTextColor(muted) })
+        if (store.url.isNotBlank()) body.addView(utilityButton(this, "Manage in ROMarr") {
+            try {
+                val address = ServerAddress.normalize(store.url) + "/#requests"
+                startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(address)))
+            } catch (_: Exception) { Toast.makeText(this, "Could not open your server in a browser.", Toast.LENGTH_LONG).show() }
+        })
         requestText.split("\n\n").forEach { request ->
             val lines = request.lines()
             val box = surface(this)
