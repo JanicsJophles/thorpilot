@@ -29,6 +29,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private lateinit var chatPanel: ChatPanel
     private lateinit var gameSession: GameSession
     private lateinit var gameCare: GameCarePanel
+    private lateinit var configSnapshots: ConfigSnapshotPanel
     private var companionPage = ""
     private lateinit var body: LinearLayout
     private lateinit var pageScroll: ScrollView
@@ -48,6 +49,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         store = ConnectionStore(this)
         gameSession = GameSession(this)
         gameCare = GameCarePanel(this).apply { restoreState(state?.getBundle("game-care")) }
+        configSnapshots = ConfigSnapshotPanel(this) { pickConfiguration() }
         chatPanel = ChatPanel(this, store) { go("settings") }
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?: "home"
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
@@ -55,6 +57,40 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requestText = if (state?.getString("request-identity") == store.identity)
             state.getString("requests") ?: initialRequests else initialRequests
         render()
+    }
+    private fun pickConfiguration() {
+        val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION or android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        try { startActivityForResult(intent, 4101) } catch (_: RuntimeException) {
+            Toast.makeText(this, "Could not open the file picker on this device.", Toast.LENGTH_LONG).show()
+        }
+    }
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 4101 || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        if (uri.scheme != "content") {
+            Toast.makeText(this, "Choose a document from the Android file picker.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val flags = data.flags and (android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        try {
+            require(flags and android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+            if (flags and android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0) {
+                contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            } else {
+                contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            configSnapshots.acceptDocument(uri)
+            go("snapshots")
+        } catch (_: RuntimeException) {
+            Toast.makeText(this, "Access could not be saved. Choose a document provider that supports persistent access.", Toast.LENGTH_LONG).show()
+        }
     }
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
@@ -84,6 +120,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onDestroy() {
         generation++
         chatPanel.close()
+        configSnapshots.close()
         worker.shutdownNow()
         super.onDestroy()
     }
@@ -161,10 +198,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun render() {
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
-            item.isSelected = page == id || (page == "care" && id == "device")
+            item.isSelected = page == id || (page in setOf("care", "snapshots") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page == "care" && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-            item.setTextColor(if (page == id || (page == "care" && id == "device")) iris else muted)
+                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+            item.setTextColor(if (page == id || (page in setOf("care", "snapshots") && id == "device")) iris else muted)
         }
         body.removeAllViews()
         when(page) {
@@ -177,7 +214,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                     addWeighted(actions, utilityButton(this, "Return to ${playAppName(gameSession.lastPackage)}") { launchPlayApp(gameSession.lastPackage) })
                 }
                 body.addView(actions)
+                body.addView(utilityButton(this, "Configuration snapshots") { go("snapshots") })
                 body.addView(gameCare.createView(this))
+            }
+            "snapshots" -> {
+                body.addView(utilityButton(this, "Back to Game care") { go("care") })
+                body.addView(configSnapshots.createView(this))
             }
             "requests" -> requestsPage()
             "settings" -> settingsPage()
@@ -202,8 +244,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page == "care" && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
-                setTextColor(if (page == id || (page == "care" && id == "device")) iris else muted)
+                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                setTextColor(if (page == id || (page in setOf("care", "snapshots") && id == "device")) iris else muted)
             }
             navigation[id] = item
             nav.addView(item, LinearLayout.LayoutParams(0, dp(this, 48), 1f))

@@ -68,3 +68,15 @@ Azahar's secondary-display Presentation covered the lower screen when Thorpilot 
 The manual [Game care journal](game-care.md) records a baseline, proposed one-setting trial and result. Its notes are not measured telemetry, a verified configuration backup or automatic rollback. A future acceptance pass must reproduce a specific visual symptom, record exact original settings, compare the same scene, restore the original and verify recovery. Check force-stop/relaunch and failed-launch behavior independently from a successful app launch.
 
 The same check returned from the game to Thorpilot and used **Return to Azahar** to resume the existing scene. The temporary controller and performance overlays were restored to their original disabled states. A baseline-only note was entered through the real Android form and persisted; isolated device instrumentation also covers step retention, save/reopen/edit, bounded journal storage and session-state rollback. Cross-display activity moves showed input-focus trouble before a fresh launch, so arbitrary live display relocation remains unverified.
+
+## Configuration snapshot acceptance
+
+On AYN Thor (Android 13), the Android document picker granted a single selected Azahar `config.ini`. The app saved an exact 18,133-byte private backup and the comparison showed matching SHA-256 values; the live emulator file was not overwritten. A separate marked 99-byte fixture under `Documents/ThorpilotTest/config.ini` received its own picker grant. Optional `ConfigDocumentChecks` wrote a longer fixture through the real external-storage provider, restored the shorter original, and verified exact bytes and SHA-256. This verifies truncating provider writes on this device, not every provider or a power-loss recovery guarantee.
+
+The isolated suite also exercises stale previews, changes during recovery capture, partial writes, false-success readback, corrupt backups, bounded storage and cross-instance concurrency. To repeat the real-provider test, create only the documented marked fixture, select it in the snapshot picker, and supply `-e configFixtureUri` to instrumentation. The test refuses any other document ID or unmarked content and restores the original fixture in cleanup. Never substitute a live emulator file for this test.
+
+## Z-A graphics trial
+
+On the same Thor, Pokémon Legends: Z-A showed flashing building textures in the opening Lumiose station scene with Eden v0.2.1 (build `1f6734c`), Turnip `26.3.0-T30-1.4.359`, 1× resolution and Fast GPU mode. The device owner observed the flicker even while standing still. Changing only the game's GPU mode to **Balanced** saved a per-game override (`gpu_accuracy=1`, global inheritance disabled). After resuming the scene, the owner reported that the flashing stopped and the scene looked much better.
+
+This is a user-confirmed result for that scene, not a full-game compatibility claim or a performance benchmark. Battles, other areas and long sessions remain untested. The change was made manually in Eden; Thorpilot does not yet apply or restore Eden profiles. The in-app configuration snapshot adapter currently supports Azahar only.
