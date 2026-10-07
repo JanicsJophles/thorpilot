@@ -6,7 +6,7 @@ import { marked } from 'marked';
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'artifacts/site');
 const pages = [
-  ['service-integrations', 'Connect your services', 'Brain, personal assistants, libraries, and scoped capabilities.'],
+  ['service-integrations', 'Connect your services', 'Optional assistants, context providers, libraries, and scoped capabilities.'],
   ['copilot-vision', 'The copilot vision', 'Useful help, natural handoffs, and room for play.'],
   ['integration-feasibility', 'Integration evidence', 'What Cocoon, Android, and emulators actually support.'],
   ['cocoon-widget', 'Cocoon widget', 'A lightweight launcher entry point and its validation status.'],
