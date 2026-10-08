@@ -102,3 +102,12 @@ both values. These are static-screen thresholds, not guaranteed recurring
 intervals or universal recommendations for every firmware. Use the firmware
 UI to apply changes live; writing a persisted setting alone may not update
 WindowManager. Thorpilot does not automatically change OLED protection.
+
+
+## Native setup design pass — 2026-10-07
+
+The development build uses shared persisted setup state with separate top-screen guidance and lower-screen controls. On the Android 13 Thor, verified: entering setup with the companion yielded uses the combined view; explicit reclaim enables separate screens; Next on the lower screen updates the upper explanation; Release this screen restores the combined controls without resetting the step. First-step actions and navigation fit the lower display at default settings after removing the redundant companion header. The wide single-screen fallback places guidance beside controls; smaller windows retain a scrolling vertical flow.
+
+`SetupChecks` exercises isolated preferences, checkpoint migration, saved current step, failed/successful/untested first-launch outcomes, frontend-change invalidation, retained folder confirmation, shared screen state, callback routing and stable action IDs. These checks do not mark the user's real setup complete or launch a game. A passed checkpoint is user confirmation, not automatic emulator verification.
+
+Build validation: debug unit tests, both APK assemblies, Android lint, and the complete device instrumentation runner. Quick Settings hardware coverage and remaining limitations are recorded in [copilot summon](copilot-summon.md). This development UI is newer than the published `v0.1.0-preview.1` APK.

@@ -61,7 +61,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         requests = RequestPanel(this, { go("settings") }) { title ->
             downloads.search(title); go("downloads")
         }
-        setup = SetupPanel(this, { go("device-library") }, { pkg -> launchPlayApp(pkg) }, { go("home") }, { go("settings") })
+        setup = SetupPanel(this, { go("device-library") }, { pkg -> launchPlayApp(pkg) }, { go("home") }, { go("settings") }, advancedTools = { go("device") })
         chatPanel = ChatPanel(this, store) { go("settings") }
         val existingSetup = store.url.isNotBlank() || gameSession.lastPackage.isNotBlank() ||
             getSharedPreferences("device-library", MODE_PRIVATE).all.isNotEmpty()
@@ -187,6 +187,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         downloads.start()
         displays.registerDisplayListener(this, null)
         showCompanion()
+        if (page == "setup") render()
     }
     override fun onResume() {
         super.onResume()
@@ -214,7 +215,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     override fun onDisplayAdded(id: Int) { showCompanion(); render() }
     override fun onDisplayRemoved(id: Int) { showCompanion(); render() }
-    override fun onDisplayChanged(id: Int) { showCompanion() }
+    override fun onDisplayChanged(id: Int) { showCompanion(); if (page == "setup") render() }
 
     private val muted = Color.rgb(174, 192, 208)
     private val paper = Color.argb(245, 12, 23, 35)
@@ -280,6 +281,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (page == destination) return
         PilotMotion.reset(body)
         page = destination
+        showCompanion()
         render()
         pageScroll.scrollTo(0, 0)
         PilotMotion.enter(body)
@@ -331,7 +333,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 body.addView(utilityButton(this, "Back to Game care") { go("care") })
                 body.addView(configSnapshots.createView(this))
             }
-            "setup" -> body.addView(setup.createView(this))
+            "setup" -> body.addView(setup.createView(this,
+                if (companion?.isShowing == true && companionPage == "setup") SetupLayout.OVERVIEW else SetupLayout.COMBINED))
             "requests" -> requestsPage()
             "settings" -> settingsPage()
             else -> workspacePage()
@@ -574,18 +577,25 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (!active || !lowerEnabled || companionSuppressed || gameSession.yielded || target == null) {
             companion?.dismiss(); companion = null; return
         }
-        if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == (if (page == "chat") "chat" else "dock")) return
+        val mode = when (page) { "chat" -> "chat"; "setup" -> "setup"; else -> "dock" }
+        if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == mode) return
         val panel = if (companion?.display?.displayId == target.displayId && companion?.isShowing == true) companion!! else {
             companion?.dismiss()
             Presentation(this, target)
         }
         val c = panel.context
-        val content = column(c).apply { background = PilotWallpaper() }
+        val content = column(c).apply {
+            if (page == "setup") setBackgroundColor(Color.BLACK) else background = PilotWallpaper()
+        }
+        if (page != "setup") {
         val header = horizontal(c)
         addWeighted(header, label(c, "Thorpilot", 19f, true))
         header.addView(label(c, "Companion", 12f).apply { setTextColor(iris) })
         content.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) })
-        if (page == "chat") {
+        }
+        if (page == "setup") {
+            content.addView(setup.createView(c, SetupLayout.CONTROLS))
+        } else if (page == "chat") {
             content.addView(utilityButton(c, "Back to workspace") { go("home") })
             content.addView(chatPanel.createView(c, compact = true))
         } else {
@@ -610,7 +620,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             if (!panel.isShowing) panel.show()
             panel.window?.setLayout(-1, -1)
             companion = panel
-            companionPage = if (page == "chat") "chat" else "dock"
+            companionPage = mode
         } catch (_: WindowManager.InvalidDisplayException) { companion = null }
     }
 }
