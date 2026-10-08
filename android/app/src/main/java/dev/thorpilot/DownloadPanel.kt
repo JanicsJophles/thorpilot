@@ -112,7 +112,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         this.text = text; textSize = size; setTextColor(if (accent) 0xffffb547.toInt() else 0xfff4f2ec.toInt()); setPadding(0, dp(5), 0, dp(5)); parent.addView(this)
     }
     private fun button(parent: LinearLayout, title: String, action: () -> Unit) = Button(parent.context).apply {
-        text = title; isAllCaps = false; textSize = 13f; setTextColor(0xffffb547.toInt()); background = PilotGlass(dp(14).toFloat())
+        text = title; isAllCaps = false; textSize = 13f; setTextColor(0xffffb547.toInt()); background = PilotSurface(dp(14).toFloat())
         setOnClickListener { runCatching(action).onFailure { message = it.message ?: "Could not complete that action."; render() } }
         parent.addView(this, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
     }
@@ -166,7 +166,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         val destination = selected()?.toString()
         val existing = jobs.states()
         filtered.take(100).forEach { entry ->
-            val card = LinearLayout(host.context).apply { orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12)) }
+            val card = LinearLayout(host.context).apply { orientation = LinearLayout.VERTICAL; background = PilotSurface(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12)) }
             host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
             val identity = entry.metadata
             val heading = LinearLayout(host.context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -273,7 +273,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
             }
         }
         dialog.show()
-        dialog.window?.setBackgroundDrawable(PilotGlass(dp(24).toFloat()))
+        dialog.window?.setBackgroundDrawable(PilotSurface(dp(24).toFloat()))
     }
     private fun renderJob() {
         val host = jobHost ?: return
@@ -323,7 +323,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     }
     private fun renderJobCard(host: LinearLayout, state: ThorDownloadState) {
         val card = LinearLayout(host.context).apply {
-            orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat())
+            orientation = LinearLayout.VERTICAL; background = PilotSurface(dp(16).toFloat())
             setPadding(dp(12), dp(6), dp(12), dp(10))
         }
         host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })

@@ -77,10 +77,18 @@ class DeviceChecks : Instrumentation() {
                 check(contains("Display "))
                 click("Requests")
                 check(contains("Your requests"))
-                click("Connection")
+                click("Settings")
                 check(contains("Save connection"))
-                click("Workspace")
+                click("Home")
                 check(contains(android.os.Build.MODEL))
+                views(activity.window.decorView).filterIsInstance<PilotActionRow>()
+                    .first { it.contentDescription.startsWith("Requests.") }.performClick()
+                check(contains("Your requests")) { "Home request row did not open the request panel" }
+                click("Home")
+                views(activity.window.decorView).filterIsInstance<PilotActionRow>()
+                    .first { it.contentDescription.startsWith("Game care.") }.performClick()
+                check(contains("Configuration snapshots")) { "Home game care row lost its tools" }
+                click("Home")
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }

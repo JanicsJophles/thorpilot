@@ -84,7 +84,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         }
         root.addView(label(c, "Local notes · Record a change and compare the same scene. Settings stay manual.", 12f))
         val card = LinearLayout(c).apply {
-            orientation = LinearLayout.VERTICAL; background = if (compact) PilotBubble(dp(c, 24).toFloat()) else PilotGlass(dp(c, 20).toFloat())
+            orientation = LinearLayout.VERTICAL; background = if (compact) PilotSurface(dp(c, 24).toFloat()) else PilotSurface(dp(c, 20).toFloat())
             setPadding(dp(c, 18), dp(c, 12), dp(c, 18), dp(c, 16))
         }
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 10) })
@@ -94,7 +94,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
                 text = title; isAllCaps = false; textSize = 13f
                 contentDescription = "$title step ${index + 1} of 3"
                 isSelected = index == step; setTextColor(0xffffb547.toInt())
-                background = if (compact) PilotBubble(dp(c, 24).toFloat(), index == step) else PilotGlass(dp(c, 16).toFloat(), index == step)
+                background = if (compact) PilotSurface(dp(c, 24).toFloat(), index == step) else PilotSurface(dp(c, 16).toFloat(), index == step)
                 setOnClickListener {
                     (c.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                         .hideSoftInputFromWindow(windowToken, 0)
@@ -139,7 +139,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         fun button(parent: LinearLayout, title: String, click: () -> Unit) {
             parent.addView(Button(c).apply {
                 text = title; isAllCaps = false; textSize = 14f; setTextColor(0xffffb547.toInt())
-                background = if (compact) PilotBubble(dp(c, 24).toFloat()) else PilotGlass(dp(c, 18).toFloat()); setOnClickListener { click() }
+                background = if (compact) PilotSurface(dp(c, 24).toFloat()) else PilotSurface(dp(c, 18).toFloat()); setOnClickListener { click() }
             }, LinearLayout.LayoutParams(-1, dp(c, 48)).apply { topMargin = dp(c, 10) })
         }
         if (compact && step == 0) {

@@ -75,13 +75,13 @@ class DeviceLibraryPanel(context: Context, private val pick: (Boolean) -> Unit, 
             text = value; textSize = size; setTextColor(0xfff4f2ec.toInt()); setPadding(0, dp(8), 0, dp(8))
         }) }
         fun button(title: String, action: () -> Unit) { root.addView(Button(c).apply {
-            text = title; isAllCaps = false; setTextColor(0xffffb547.toInt()); background = PilotGlass(dp(16).toFloat()); setOnClickListener { action() }
+            text = title; isAllCaps = false; setTextColor(0xffffb547.toInt()); background = PilotSurface(dp(16).toFloat()); setOnClickListener { action() }
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) }) }
         fun row(items: List<Pair<String, () -> Unit>>, scroll: Boolean = false) {
             val line = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }
             items.forEach { (title, action) -> line.addView(Button(c).apply {
                 text = title; textSize = 13f; isAllCaps = false; setTextColor(0xffffb547.toInt())
-                background = PilotGlass(dp(14).toFloat()); setOnClickListener { action() }
+                background = PilotSurface(dp(14).toFloat()); setOnClickListener { action() }
             }, LinearLayout.LayoutParams(if (scroll) -2 else 0, dp(48), if (scroll) 0f else 1f).apply { marginEnd = dp(6) }) }
             if (scroll) root.addView(HorizontalScrollView(c).apply { isHorizontalScrollBarEnabled = false; addView(line) })
             else root.addView(line)

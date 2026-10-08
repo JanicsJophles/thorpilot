@@ -8,7 +8,7 @@ Bundled Bricolage Grotesque headings and Instrument Sans body text work offline;
 
 Controller focus uses a static inset amber rim and pale inner highlight, drawn above the control without layout changes or blur. Moving focus restores the old foreground. Selected navigation has a separate thin amber border. Device checks verify focus follows navigation and does not leave stale decorations.
 
-The workspace has one primary action and a compact emulator handoff. The lower dock uses four compact action rows. Keep 48dp touch targets. My Thor shows the build type and source revision; `dirty` means local tracked changes and `unknown` means revision information was unavailable.
+Home and the companion display use one shared action-row component and one destination list. Home keeps the emulator handoff above those actions. The former workspace landing page and separate shortcut-tile builder have been deleted. Keep 48dp touch targets. My Thor shows the build type and source revision; `dirty` means local tracked changes and `unknown` means revision information was unavailable.
 
 This is the native reference-theme implementation, not completion of every reference artboard. The existing top workspace and lower companion ownership remain. Universal in-game overlays, automatic game telemetry and all proposed summon interactions are not implied by the visual update. The web concept remains a separate surface; it is not an APK screenshot.
 
@@ -19,3 +19,9 @@ The top display carries a spacious library/task workspace. The lower display car
 Use one small star motif, gentle surfaces and quiet motion. No game artwork or branding is bundled. Clear progress and honest uncertainty outrank decoration. Keyboard focus, reduced-motion settings, readable text and mobile layouts are part of the baseline.
 
 The next design pass explores a compact **summon → ask/act → dismiss** interaction. See [Summoning the copilot](copilot-summon.md) for display ownership, motion constraints, Android feasibility, and the distinction between a visual concept and shipped functionality.
+
+## Native UI ownership
+
+`PilotSurface` is the shared rounded control surface for the app, panels and summon activity. `PilotActionRow` is the shared home/companion navigation component. The previous `PilotGlass`, `PilotBubble`, `PilotWallpaper` and `PilotJourney` implementations are removed rather than retained as a fallback theme. `PilotIcon` contains only the currently used vector action icons.
+
+Functional panels remain connected to their existing stores, clients and transfer services. Changing the design must not reset preferences, save files, transfer history or connection credentials. Home row navigation is exercised by the on-device checks alongside tab stability and focus restoration.

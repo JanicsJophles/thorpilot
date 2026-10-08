@@ -253,13 +253,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun utilityButton(c: Context, value: String, action: () -> Unit) = button(c, value, action).apply {
         textSize = 12f
         background = android.graphics.drawable.InsetDrawable(
-            android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33ffb547), PilotGlass(dp(c, 16).toFloat()), null),
+            android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33ffb547), PilotSurface(dp(c, 16).toFloat()), null),
             0, dp(c, 6), 0, dp(c, 6))
         setPadding(dp(c, 12), dp(c, 2), dp(c, 12), dp(c, 2))
         layoutParams = LinearLayout.LayoutParams(-2, dp(c, 48))
     }
     private fun surface(c: Context, color: Int = paper) = column(c).apply {
-        background = PilotGlass(dp(c, 24).toFloat())
+        background = PilotSurface(dp(c, 24).toFloat())
         elevation = dp(c, 3).toFloat()
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) }
     }
@@ -290,7 +290,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         navigation.forEach { (id, item) ->
             item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotSurface(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
             item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
         }
         body.removeAllViews()
@@ -335,7 +335,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 if (companion?.isShowing == true && companionPage == "setup") SetupLayout.OVERVIEW else SetupLayout.COMBINED))
             "requests" -> requestsPage()
             "settings" -> settingsPage()
-            else -> workspacePage()
+            else -> homePage()
         }
         PilotTypography.applyTo(body)
     }
@@ -350,14 +350,14 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         val header = horizontal(this)
         header.addView(label(this, "Thorpilot", 20f, true).apply { setPadding(0, 0, dp(context, 26), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
         val nav = horizontal(this).apply {
-            background = PilotGlass(dp(this@MainActivity, 23).toFloat())
+            background = PilotSurface(dp(this@MainActivity, 23).toFloat())
             setPadding(dp(context, 3), 0, dp(context, 3), 0)
         }
-        listOf("home" to "Workspace", "chat" to "Chat", "device" to "My Thor", "requests" to "Requests", "settings" to "Connection").forEach { (id, name) ->
+        listOf("home" to "Home", "chat" to "Ask", "device" to "My Thor", "requests" to "Requests", "settings" to "Settings").forEach { (id, name) ->
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                    android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotSurface(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
                 setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
             }
             navigation[id] = item
@@ -388,32 +388,37 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         getPreferences(MODE_PRIVATE).edit().putBoolean("lower", lowerEnabled).apply()
         showCompanion(); render()
     }
-    private fun workspacePage() {
-        body.addView(label(this, "A little help on your Thor.", 26f, true))
-        body.addView(label(this, "Your games, requests and device — in one place.", 14f).apply { setTextColor(muted) })
-        body.addView(button(this, if (store.url.isBlank()) "Set up my handheld" else "Ask Thorpilot") { go(if (store.url.isBlank()) "setup" else "chat") }.apply {
-            setTextColor(Color.rgb(30, 20, 4)); background = shape(iris, 18f)
-            layoutParams = LinearLayout.LayoutParams(dp(this@MainActivity, 240), dp(this@MainActivity, 48)).apply { topMargin = dp(this@MainActivity, 8); bottomMargin = dp(this@MainActivity, 12) }
-        })
+    private fun homePage() {
+        val header = horizontal(this)
+        addWeighted(header, label(this, "Home", 26f, true))
+        header.addView(label(this, Build.MODEL, 12f).apply { setTextColor(muted) })
+        body.addView(header)
         sessionBar()
-        val dock = horizontal(this).apply {
-            background = PilotGlass(dp(this@MainActivity, 24).toFloat())
-            setPadding(dp(context, 16), dp(context, 12), dp(context, 16), dp(context, 12))
-            elevation = dp(context, 4).toFloat()
+        if (store.url.isBlank()) {
+            body.addView(PilotActionRow(this, "Set up your handheld", "Connect a library and choose your folders", "device") { go("setup") })
         }
-        val device = horizontal(this)
-        device.addView(ImageView(this).apply { setImageDrawable(PilotIcon("device")) }, LinearLayout.LayoutParams(dp(this, 46), dp(this, 46)).apply { marginEnd = dp(this@MainActivity, 10) })
-        val status = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        status.addView(label(this, Build.MODEL, 14f, true))
-        status.addView(label(this, "${displays.displays.size} screens detected", 11f).apply { setTextColor(muted) })
-        device.addView(status)
-        addWeighted(dock, device, 1f, 18)
-        addWeighted(dock, utilityButton(this, if (store.url.isBlank()) "Connect library" else "My requests") { go(if (store.url.isBlank()) "settings" else "requests") }, 1f, 16)
-        addWeighted(dock, utilityButton(this, if (gameSession.yielded || companionSuppressed) "Reclaim screen" else if (lowerEnabled) "Release screen" else "Use lower screen") { toggleCompanion() })
-        body.addView(dock)
-        body.addView(utilityButton(this, "Game care · track a graphics experiment") { go("care") })
-        body.addView(label(this, "Touch or D-pad to explore     •     Changes stay in your control", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
+        val columns = if (resources.configuration.screenWidthDp >= 620 && resources.configuration.fontScale <= 1.3f) 2 else 1
+        homeActions().chunked(columns).forEach { actions ->
+            val row = horizontal(this)
+            actions.forEachIndexed { index, (title, detail, icon, destination) ->
+                row.addView(PilotActionRow(this, title, detail, icon) { go(destination) },
+                    LinearLayout.LayoutParams(0, -1, 1f).apply {
+                        marginEnd = if (index < actions.lastIndex) dp(this@MainActivity, 10) else 0
+                    })
+            }
+            body.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(this@MainActivity, 8) })
+        }
+        body.addView(utilityButton(this, if (gameSession.yielded || companionSuppressed) "Reclaim companion screen" else if (lowerEnabled) "Release companion screen" else "Use companion screen") { toggleCompanion() })
     }
+
+    private data class HomeAction(val title: String, val detail: String, val icon: String, val destination: String)
+    private fun homeActions() = listOf(
+        HomeAction("Ask Thorpilot", "Find a game or plan what to play", "chat", "chat"),
+        HomeAction("Game care", "Keep notes, compare settings, track a fix", "care", "care"),
+        HomeAction("Requests", "Follow requests from your connected library", "requests", "requests"),
+        HomeAction("On this Thor", "Games, transfers and storage", "device", "device")
+    )
+
     private fun requestsPage() { body.addView(requests.createView(this)) }
     private fun deviceAction(title: String, detail: String, icon: String, destination: String): Button =
         button(this, title) { go(destination) }.apply {
@@ -426,7 +431,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             setPadding(dp(context, 14), dp(context, 12), dp(context, 14), dp(context, 12))
             setLineSpacing(dp(context, 5).toFloat(), 1f)
             background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x33ffb547), PilotGlass(dp(context, 22).toFloat()), null)
+                android.content.res.ColorStateList.valueOf(0x33ffb547), PilotSurface(dp(context, 22).toFloat()), null)
             val tile = PilotIcon(icon).apply { setBounds(0, 0, dp(context, 40), dp(context, 40)) }
             setCompoundDrawablesRelative(tile, null, null, null)
             compoundDrawablePadding = dp(context, 14)
@@ -578,20 +583,6 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             store.clear(); chatPanel.onConnectionChanged(); requests.connectionChanged(); render()
         })
     }
-    private fun launchTile(c: Context, title: String, kind: String, action: () -> Unit): View = LinearLayout(c).apply {
-        orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = dp(c, 64)
-        isClickable = true; isFocusable = true; contentDescription = title
-        setPadding(dp(c, 8), dp(c, 8), dp(c, 8), dp(c, 12))
-        background = android.graphics.drawable.StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_focused), PilotGlass(dp(c, 24).toFloat(), true))
-            addState(intArrayOf(android.R.attr.state_pressed), PilotGlass(dp(c, 24).toFloat(), true))
-            addState(intArrayOf(), PilotGlass(dp(c, 18).toFloat()))
-        }
-        addView(ImageView(c).apply { setImageDrawable(PilotIcon(kind)); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(c, 36), dp(c, 36)))
-        addView(label(c, title, 13f, true).apply { gravity = Gravity.CENTER; setPadding(dp(c, 14), 0, 0, 0); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO })
-        setOnClickListener { action() }
-    }
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
             .firstOrNull { it.displayId != display?.displayId }
@@ -617,11 +608,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (page == "setup") {
             content.addView(setup.createView(c, SetupLayout.CONTROLS))
         } else if (page == "chat") {
-            content.addView(utilityButton(c, "Back to workspace") { go("home") })
+            content.addView(utilityButton(c, "Back to Home") { go("home") })
             content.addView(chatPanel.createView(c, compact = true))
         } else {
-        listOf(Triple("Ask Thorpilot", "chat", "chat"), Triple("Game care", "settings", "care"), Triple("Requests", "requests", "requests"), Triple("On this Thor", "device", "device")).forEach { (title, icon, destination) ->
-            content.addView(launchTile(c, title, icon) { go(destination) }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 8) })
+        homeActions().forEach { (title, detail, icon, destination) ->
+            content.addView(PilotActionRow(c, title, detail, icon) { go(destination) })
         }
 
         }

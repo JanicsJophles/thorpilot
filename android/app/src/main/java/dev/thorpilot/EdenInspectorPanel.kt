@@ -82,7 +82,7 @@ class EdenInspectorPanel(context: Context, private val pick: (Boolean) -> Unit) 
         fun button(title: String, action: () -> Unit) {
             host.addView(Button(c).apply {
                 text = title; isAllCaps = false; setTextColor(0xffffb547.toInt())
-                background = PilotGlass(dp(16).toFloat()); isEnabled = !busy; setOnClickListener { action() }
+                background = PilotSurface(dp(16).toFloat()); isEnabled = !busy; setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         }
         text("Eden settings · read only", 24f)

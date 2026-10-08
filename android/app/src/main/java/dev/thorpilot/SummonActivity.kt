@@ -39,7 +39,7 @@ class SummonActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(10), dp(18), dp(14))
-            background = PilotBubble(dp(30).toFloat())
+            background = PilotSurface(dp(30).toFloat())
             isFocusableInTouchMode = true
         }
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -50,9 +50,9 @@ class SummonActivity : Activity() {
             text = title; textSize = 13f; isAllCaps = false
             minHeight = dp(48); setTextColor(0xfff4f2ec.toInt())
             background = android.graphics.drawable.StateListDrawable().apply {
-                addState(intArrayOf(android.R.attr.state_focused), PilotBubble(dp(24).toFloat(), true))
-                addState(intArrayOf(android.R.attr.state_pressed), PilotBubble(dp(24).toFloat(), true))
-                addState(intArrayOf(), PilotBubble(dp(24).toFloat()))
+                addState(intArrayOf(android.R.attr.state_focused), PilotSurface(dp(24).toFloat(), true))
+                addState(intArrayOf(android.R.attr.state_pressed), PilotSurface(dp(24).toFloat(), true))
+                addState(intArrayOf(), PilotSurface(dp(24).toFloat()))
             }
             setPadding(dp(14), 0, dp(14), 0)
             layoutParams = LinearLayout.LayoutParams(-2, dp(44)).apply { marginStart = dp(6) }
