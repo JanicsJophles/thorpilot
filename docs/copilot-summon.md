@@ -79,3 +79,7 @@ The compact copilot's mode picker switches between game discovery and Game care.
 Unfinished care work uses a separate bounded local draft, restored after dismissal or process restart. Saved notes continue to use the existing Game care journal. Mode selection persists; switching modes preserves the draft. Starting a replacement note asks before discarding a populated draft. Notes are not sent to the discovery model. This is explicit user-provided context, not live game detection or automatic optimization.
 
 The compact surfaces use locally drawn translucent glass with rounded pill controls, subtle reflections and rims. No sampled blur, continuous visual effect or background rendering loop is used.
+
+## Recommendation artwork
+
+The development app displays public IGDB covers already returned by the configured ROMarr chat adapter, in both Workspace and compact discovery cards. Provider keys remain on the server. The Android loader only accepts HTTPS images from the IGDB image host, refuses redirects, bounds response size and decoded dimensions, and uses two background workers with an 8 MiB memory cache. Missing or unsupported artwork retains a local icon. Other artwork providers and Cocoon credential import are not yet integrated.

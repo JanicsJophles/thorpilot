@@ -125,3 +125,9 @@ The compact activity has separate connection-bound chat storage and does not cre
 On the Android 13 Thor, opened the updated compact copilot over Cocoon and selected Game care from the mode picker. Verified the expanded journal and glass treatment on the device. Compact layout removes duplicate headings and hides optional build/driver fields behind a disclosure.
 
 Added isolated instrumentation coverage for selecting an Eden draft, disclosure controls, bounded draft roundtrip across store instances, malformed/oversized data, independent namespaces, and preservation of existing journal entries. The complete device runner and local unit/build/lint checks pass. No live game was tuned in this pass; no game files or emulator settings were modified.
+
+## Discovery artwork — 2026-10-07
+
+Verified Animal Crossing: Wild World artwork in a restored compact discovery conversation on the physical Android 13 Thor, opened through Quick Settings over Cocoon. Cards retain the glass treatment and scroll below the fixed copilot header. No new discovery request or game download was required.
+
+The complete device runner passes, including image URL allowlist, invalid/oversized payload and downsampling checks. Debug unit tests, both APK assemblies and Android lint also pass. This covers IGDB recommendation artwork only; other providers and direct Cocoon artwork integration remain unimplemented. The installed development build is newer than the public preview APK.
