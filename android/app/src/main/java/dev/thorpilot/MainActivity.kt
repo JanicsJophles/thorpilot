@@ -45,6 +45,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private var companionSuppressed = false
     private var active = false
 
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        PilotFeedback.key(currentFocus, event)
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         companionSuppressed = state?.getBoolean("companion-suppressed")
@@ -241,7 +246,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         text = value; isAllCaps = false; textSize = 14f; setTextColor(ink)
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         background = android.graphics.drawable.RippleDrawable(
-            android.content.res.ColorStateList.valueOf(0x33FFB547), shape(lavender, 15f), null)
+            android.content.res.ColorStateList.valueOf(0x33FFB547), PilotSurface(dp(c, 15).toFloat()), null)
         setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         setOnClickListener { action() }
 
@@ -593,7 +598,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == mode) return
         val panel = if (companion?.display?.displayId == target.displayId && companion?.isShowing == true) companion!! else {
             companion?.dismiss()
-            Presentation(this, target)
+            object : Presentation(this, target) {
+                override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+                    PilotFeedback.key(currentFocus, event)
+                    return super.dispatchKeyEvent(event)
+                }
+            }
         }
         val c = panel.context
         val content = column(c).apply {

@@ -11,8 +11,13 @@ class PilotSurface(private val radius: Float = 28f, private val selected: Boolea
     override fun onBoundsChange(bounds: Rect) {
         surface.set(bounds); surface.inset(1f, 1f)
         if (surface.isEmpty) return
-        fill.color = if (selected) 0xff1c1f27.toInt() else 0xff13151b.toInt()
-        rim.color = if (selected) 0xffffb547.toInt() else 0xff2a2e38.toInt()
+        fill.shader = LinearGradient(surface.left, surface.top, surface.right, surface.bottom,
+            if (selected) intArrayOf(0xf0524940.toInt(), 0xf027292f.toInt(), 0xfa13151b.toInt())
+            else intArrayOf(0xf0333842.toInt(), 0xf01b1e26.toInt(), 0xfa101218.toInt()),
+            floatArrayOf(0f, .38f, 1f), Shader.TileMode.CLAMP)
+        rim.shader = LinearGradient(surface.left, surface.top, surface.right, surface.bottom,
+            if (selected) intArrayOf(0xffffe5bc.toInt(), 0xffd69d52.toInt(), 0x88726960.toInt())
+            else intArrayOf(0x99e5eaf2.toInt(), 0x304c5361, 0x66727b8c), null, Shader.TileMode.CLAMP)
 
     }
     override fun draw(c: Canvas) {

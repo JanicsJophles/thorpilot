@@ -25,6 +25,11 @@ class SummonActivity : Activity() {
     private lateinit var expandButton: Button
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        PilotFeedback.key(currentFocus, event)
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         expanded = state?.getBoolean("expanded") ?: false

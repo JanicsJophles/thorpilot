@@ -92,6 +92,23 @@ class DeviceChecks : Instrumentation() {
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }
+            var feedbackTarget: Button? = null
+            runOnMainSync {
+                fun all(v: View): List<View> = listOf(v) + if (v is ViewGroup)
+                    (0 until v.childCount).flatMap { all(v.getChildAt(it)) } else emptyList()
+                feedbackTarget = all(activity.window.decorView).filterIsInstance<Button>().first { it.text.toString() == "Home" }
+                feedbackTarget!!.requestFocusFromTouch()
+                PilotFeedback.key(feedbackTarget, android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_CENTER))
+                PilotFeedback.key(feedbackTarget, android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_CENTER))
+            }
+            android.os.SystemClock.sleep(500)
+            runOnMainSync {
+                try {
+                    check(feedbackTarget!!.scaleX == 1f && feedbackTarget!!.scaleY == 1f) { "Rapid presses left the button scaled" }
+                    check((feedbackTarget!!.foreground as PilotFocusRing).reveal == 1f) { "Focus reveal did not settle" }
+                } catch (failure: Throwable) { uiFailure = failure }
+            }
+            uiFailure?.let { throw it }
             val sessionBefore = GameSession(targetContext).let { it.yielded to it.lastPackage }
             val quick = startActivitySync(ThorpilotTileService.launchIntent(targetContext))
             waitForIdleSync()
