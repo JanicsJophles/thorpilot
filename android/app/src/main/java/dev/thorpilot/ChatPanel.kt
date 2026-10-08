@@ -14,8 +14,8 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 
 /** The same conversation can render on the workspace or a secondary display. */
-class ChatPanel(private val activity: Activity, private val store: ConnectionStore, private val connect: () -> Unit) {
-    private val conversation = ChatConversation(store, ChatHistory(activity))
+class ChatPanel(private val activity: Activity, private val store: ConnectionStore, private val quick: Boolean = false, private val connect: () -> Unit) {
+    private val conversation = ChatConversation(store, ChatHistory(activity, if (quick) "copilot-chat-history" else "chat-history"))
     private val messages get() = conversation.messages
     private val draft get() = conversation.draft
     private val busy get() = conversation.busy
@@ -68,7 +68,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         val c = root.context
         val compact = root.tag == true
         val heading = LinearLayout(c).apply { gravity = Gravity.CENTER_VERTICAL }
-        heading.addView(text(c, if (compact) "Let’s find a game" else "Find your next favorite", if (compact) 20f else 23f, true), LinearLayout.LayoutParams(0, -2, 1f))
+        heading.addView(text(c, if (quick) "Find a game" else if (compact) "Let’s find a game" else "Find your next favorite", if (compact) 20f else 23f, true), LinearLayout.LayoutParams(0, -2, 1f))
         if (messages.isNotEmpty()) heading.addView(action(c, "Clear") {
             android.app.AlertDialog.Builder(activity).setTitle("Clear this conversation?")
                 .setMessage("This removes the conversation saved on this handheld.")
@@ -84,20 +84,20 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             background = android.graphics.drawable.InsetDrawable(surface(c, Color.rgb(16, 32, 46)), 0, dp(c, 7), 0, dp(c, 7))
             layoutParams = LinearLayout.LayoutParams(dp(c, 70), dp(c, 48))
         })
-        root.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 12); bottomMargin = dp(c, 6) })
-        root.addView(text(c, "Game discovery through your server. Suggestions never start a download.", 13f).apply { setTextColor(muted) })
+        if (!quick || messages.isNotEmpty()) root.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 12); bottomMargin = dp(c, 6) })
+        root.addView(text(c, if (quick) "Game discovery · separate from your Workspace chat" else "Game discovery through your server. Suggestions never start a download.", 13f).apply { setTextColor(muted) })
         if (store.url.isBlank()) {
             root.addView(text(c, "Connect your ROMarr server to start a conversation. Your model provider runs through that server."))
-            root.addView(action(c, "Connect server", connect))
+            root.addView(action(c, if (quick) "Open Workspace to connect" else "Connect server", connect))
             return
         }
-        if (messages.isEmpty()) {
+        if (messages.isEmpty() && !quick) {
             root.addView(text(c, "What are you in the mood for?", 18f, true))
             root.addView(action(c, "A cozy game for a short session") { conversation.updateDraft("Find me a cozy game for short sessions on Nintendo DS or PSP."); refresh() })
             root.addView(action(c, "Something like my favorites") { conversation.updateDraft("Help me find a game like my favorites. Ask me what I enjoy."); refresh() })
         }
         if (compact && messages.isNotEmpty()) root.addView(text(c, "Your conversation and game ideas appear on the other screen.", 14f))
-        for (message in if (compact) emptyList() else messages.takeLast(12)) {
+        for (message in if (compact) emptyList() else messages.takeLast(if (quick) 2 else 12)) {
             val block = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
@@ -121,7 +121,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             textSize = 15f; setTextColor(ink); setHintTextColor(muted); setText(draft)
             background = surface(c, Color.rgb(5, 14, 24))
             setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
-            minLines = 2; maxLines = 4
+            minLines = if (quick) 1 else 2; maxLines = 4
             imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             filters = arrayOf(android.text.InputFilter.LengthFilter(3000))

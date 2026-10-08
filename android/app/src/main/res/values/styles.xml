@@ -7,4 +7,12 @@
         <item name="android:statusBarColor">#030A11</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
+    <style name="CopilotTheme" parent="android:style/Theme.Material.Dialog.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">#6CF7D0</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowSoftInputMode">stateAlwaysHidden|adjustResize</item>
+    </style>
 </resources>

@@ -111,3 +111,10 @@ The development build uses shared persisted setup state with separate top-screen
 `SetupChecks` exercises isolated preferences, checkpoint migration, saved current step, failed/successful/untested first-launch outcomes, frontend-change invalidation, retained folder confirmation, shared screen state, callback routing and stable action IDs. These checks do not mark the user's real setup complete or launch a game. A passed checkpoint is user confirmation, not automatic emulator verification.
 
 Build validation: debug unit tests, both APK assemblies, Android lint, and the complete device instrumentation runner. Quick Settings hardware coverage and remaining limitations are recorded in [copilot summon](copilot-summon.md). This development UI is newer than the published `v0.1.0-preview.1` APK.
+
+
+## Compact copilot — 2026-10-07
+
+Tested the compact dialog through the actual Quick Settings tile over Cocoon on the Android 13 Thor. No keyboard appeared at entry. Typed a game-discovery draft, hid the keyboard, dismissed, reopened the tile, and verified the exact draft returned. Sent that draft through the configured server and received catalog-backed game cards plus the existing warning for unverified suggestions. Expanded and scrolled the reply with Workspace/Dismiss remaining available. This tested discovery only; no download was started.
+
+The compact activity has separate connection-bound chat storage and does not create a secondary Presentation or modify GameSession. Manifest contract checks verify the private activity, task affinity and Recents exclusion; the full device runner, unit tests, APK assemblies and lint pass. Emulator rendering/audio continuity, physical gamepad focus, Android 14+ tile launching and narrow-phone layout remain unverified. The public preview APK has not been replaced.

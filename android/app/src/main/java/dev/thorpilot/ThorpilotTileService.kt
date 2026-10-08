@@ -19,7 +19,7 @@ class ThorpilotTileService : TileService() {
         super.onStartListening()
         qsTile?.apply {
             label = "Thorpilot"
-            subtitle = "Open workspace"
+            subtitle = "Ask Thorpilot"
             state = Tile.STATE_INACTIVE
             updateTile()
         }
@@ -53,9 +53,8 @@ class ThorpilotTileService : TileService() {
     companion object {
         const val EXTRA_SUPPRESS_COMPANION = "dev.thorpilot.extra.SUPPRESS_COMPANION"
 
-        fun launchIntent(context: Context): Intent = ThorpilotWidget.launchIntent(context, "home").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(EXTRA_SUPPRESS_COMPANION, true)
+        fun launchIntent(context: Context): Intent = Intent(context, SummonActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
 
         fun suppressesCompanion(intent: Intent?): Boolean =

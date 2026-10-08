@@ -4,7 +4,7 @@ Thorpilot should be easy to call up for one question or action, then dismiss. It
 
 ## Delivery status
 
-The published 0.1.0-preview.1 app has a Cocoon widget, explicit emulator handoff, companion screen release/reclaim, and short navigation transitions. The development branch adds an optional Quick Settings workspace tile; hardware validation is still pending. It does **not** yet ship a global controller hotkey, a draw-over-games bar, or universal live game detection. The full summon experience is a design proposal under evaluation.
+The published 0.1.0-preview.1 app has a Cocoon widget, explicit emulator handoff, companion screen release/reclaim, and short navigation transitions. The development app adds an optional Quick Settings tile that opens a compact game-discovery conversation. It has Expand, Workspace and Dismiss controls and saves its draft and conversation separately from Workspace chat. It does **not** yet ship a global controller hotkey, a draw-over-games bar, or universal live game detection. The full summon experience is a design proposal under evaluation.
 
 The design explores three states:
 
@@ -18,9 +18,9 @@ The proposed identity is a small luminous control surface against AMOLED black, 
 
 In **My Thor**, choose **Add Quick Settings tile**. Android 13 and later show a system confirmation; you choose whether to add it. On older supported versions, open Quick Settings, choose **Edit**, and drag **Thorpilot** into the active tiles. The same manual route works if the system cannot show the confirmation.
 
-Tap the tile to open the workspace. Local device tools remain available without a server connection. A locked device must be unlocked first. The tile does not request overlay, accessibility, microphone, or screen-capture access. It has no polling loop or ongoing foreground service.
+Tap the tile to open the compact copilot. Expand gives longer replies more room; Dismiss, Android Back, or a tap outside closes it. The keyboard stays hidden until you choose the input. Local device tools remain available without a server connection. A locked device must be unlocked first. The tile does not request overlay, accessibility, microphone, or screen-capture access. It has no polling loop or ongoing foreground service.
 
-The tile handoff suppresses Thorpilot's companion presentation, including when a game was launched outside Thorpilot. Existing game-screen handoff state stays intact. Reclaiming the companion remains an explicit action. Android and the emulator determine which display receives the app and whether the game pauses; automatic lower-screen placement is not promised.
+The compact activity never creates a companion presentation. Its Workspace action opens the full app with companion presentation suppressed, including when a game was launched outside Thorpilot. Existing game-screen handoff state stays intact. Reclaiming the companion remains an explicit action. Android and the emulator determine which display receives the app and whether the game pauses; automatic lower-screen placement is not promised.
 
 The existing Cocoon widget and normal app icon remain alternative entry points.
 
@@ -43,11 +43,11 @@ The physical test device captures a 1920×1080 top display and a 1240×1080 lowe
 
 Existing Azahar focus/display findings are recorded in [device testing](device-testing.md). Keep them as acceptance constraints rather than assuming a second screen solves focus management.
 
-## Compact activity candidate
+## Compact activity
 
-The current tile opens the full workspace. A dedicated compact activity, entered through that tile, Cocoon widget, or app shortcut, is a possible next slice. It would avoid creating the main activity's secondary Presentation and preserve the recorded yielded state. It needs no accessibility service or draw-over-apps permission.
+`SummonActivity` is a non-exported dialog activity in its own task, excluded from Recents. It uses the saved server connection and existing bounded chat client. Its separate connection-bound conversation prevents a paused Workspace chat from overwriting the quick conversation, or vice versa. Closing during a request stops UI delivery; an unanswered saved message offers Retry on reopening. It does not execute downloads or modify emulator settings.
 
-This is a quick handoff, **not** a promise of uninterrupted gameplay. Android 14+ tiles use the PendingIntent form of `startActivityAndCollapse`; earlier supported Android versions use the Intent form. Android 13+ can offer the system add-tile request. See the [official tile guide](https://developer.android.com/develop/ui/views/quicksettings-tiles).
+The initial bottom window is 250 dp high and can expand to 390 dp, bounded by the available display. The header remains visible while the conversation scrolls. No overlay or accessibility permission is required, no second display is claimed, and there is no background summon loop. The native dialog transition is used. This remains an activity handoff: the previous app may pause. Android manages the chosen display; uninterrupted game rendering and universal controller hotkeys are not promised. [Android activity configuration](https://developer.android.com/guide/topics/manifest/activity-element).
 
 ## Optional overlay candidate
 
