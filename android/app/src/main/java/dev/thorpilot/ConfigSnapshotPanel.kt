@@ -65,7 +65,7 @@ class ConfigSnapshotPanel(context: Context, private val onPickDocument: () -> Un
     private fun button(parent: LinearLayout, title: String, enabled: Boolean = true, action: () -> Unit) {
         parent.addView(Button(parent.context).apply {
             text = title; textSize = 14f; isAllCaps = false; setTextColor(0xffffb547.toInt())
-            background = PilotGlass(dp(context, 16).toFloat()); isEnabled = enabled && !busy
+            background = PilotSurface(dp(context, 16).toFloat()); isEnabled = enabled && !busy
             alpha = if (isEnabled) 1f else .5f; setOnClickListener { action() }
         }, LinearLayout.LayoutParams(-1, dp(parent.context, 48)).apply { topMargin = dp(parent.context, 8) })
     }
@@ -87,7 +87,7 @@ class ConfigSnapshotPanel(context: Context, private val onPickDocument: () -> Un
         label(host, "Azahar ${version().ifBlank { "not detected" }} · Local backups only", 12f)
         if (!supported()) label(host, "Restore is available only for the reviewed Azahar 2126.0 / 2126.0-vanilla build. Other versions can still be backed up.", 12f)
         val card = LinearLayout(host.context).apply {
-            orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(context, 20).toFloat())
+            orientation = LinearLayout.VERTICAL; background = PilotSurface(dp(context, 20).toFloat())
             setPadding(dp(context, 18), dp(context, 12), dp(context, 18), dp(context, 16))
         }
         host.addView(card, LinearLayout.LayoutParams(-1, -2))

@@ -139,7 +139,7 @@ class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
         }) }
         fun button(title: String, enabled: Boolean = true, action: () -> Unit) { host.addView(Button(c).apply {
             text = title; isAllCaps = false; isEnabled = enabled && !busy; setTextColor(0xffffb547.toInt())
-            background = PilotGlass(dp(16).toFloat()); setOnClickListener { action() }
+            background = PilotSurface(dp(16).toFloat()); setOnClickListener { action() }
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) }) }
         text("Library sync", 24f)
         text("Bring missing games into your existing ROMs layout. Choose a source and destination; reverse them to copy in the other direction. Existing files and saves stay untouched.")

@@ -47,7 +47,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     fun close() { closed = true; covers.close(); worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun surface(c: Context, color: Int): android.graphics.drawable.Drawable =
-        if (quick) PilotBubble(dp(c, 24).toFloat(), color == Color.rgb(28, 31, 39))
+        if (quick) PilotSurface(dp(c, 24).toFloat(), color == Color.rgb(28, 31, 39))
         else GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0xff2a2e38.toInt()) }
     private fun text(c: Context, value: String, size: Float = 15f, bold: Boolean = false) = TextView(c).apply {
         text = value; textSize = size; setTextColor(ink)
@@ -114,7 +114,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.TOP
                     setPadding(dp(c, 12), dp(c, 12), dp(c, 12), dp(c, 12))
-                    background = PilotBubble(dp(c, 22).toFloat())
+                    background = PilotSurface(dp(c, 22).toFloat())
                 }
                 val art = ImageView(c).apply {
                     contentDescription = "${game.title} cover"

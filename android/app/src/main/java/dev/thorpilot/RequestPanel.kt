@@ -68,7 +68,7 @@ class RequestPanel(context: Context, private val connect: () -> Unit, private va
         })
     }
     private fun button(parent: LinearLayout, text: String, action: () -> Unit): Button = Button(parent.context).apply {
-        this.text = text; textSize = 13f; isAllCaps = false; setTextColor(0xffffb547.toInt()); background = PilotGlass(dp(14).toFloat())
+        this.text = text; textSize = 13f; isAllCaps = false; setTextColor(0xffffb547.toInt()); background = PilotSurface(dp(14).toFloat())
         setOnClickListener { action() }
         parent.addView(this, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
     }
@@ -134,7 +134,7 @@ class RequestPanel(context: Context, private val connect: () -> Unit, private va
         if (matches.size > 100) label(host, "Showing 100 matches. Refine your search to find more.", 12f)
         matches.take(100).forEach { request ->
             val card = LinearLayout(host.context).apply {
-                orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12))
+                orientation = LinearLayout.VERTICAL; background = PilotSurface(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12))
             }
             host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
             label(card, request.title, 18f, true)
