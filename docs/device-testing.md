@@ -149,3 +149,9 @@ Gateway/exporter tests cover exact platform/hash correspondence, conflicting mat
 After connectivity returned, the live RomM export and download gateway were deployed and verified: 18 files, 17 exact file-hash matches with IGDB artwork, and one filename-only review candidate. The Thor displayed live Pokémon FireRed metadata and artwork in the library and review dialog. A real sandboxed hourly-refresh service run completed successfully and replaced the index atomically. No game download was needed for this verification. Direct Cocoon artwork export remains unsupported.
 
 Validation completed: 31 companion tests, Android unit tests, debug/test/release APK builds, Android lint, the full physical-device runner, Node tests and the static site's link/asset checks pass locally. A physical-device screenshot confirms the review dialog renders with the app's glass surface; this screenshot uses clearly named test fixtures, not live catalog results.
+
+## Compact workspace and duplicate audit — 2026-10-08
+
+The workspace illustration and introduction now leave room for the device controls, and emulator handoff uses a compact row. The installed APK was compared byte-for-byte with the previous local artifact before changing it: the earlier layout was current, not a stale installation. My Thor now identifies build type and source revision.
+
+Validation: Android unit tests, debug/test APK builds, lint and the physical-device runner pass. The updated workspace was inspected on the top display of the Thor. Forty companion tests cover the metadata bridge and read-only duplicate audit; website tests and generated link checks pass. This pass does not validate a full redesign, all font sizes, or every orientation.
