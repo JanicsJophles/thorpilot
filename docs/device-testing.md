@@ -139,3 +139,13 @@ On the Thor, missing 3DS artwork appeared as `0` placeholders. The affected disp
 New-transfer filename preparation is documented in [Download to Thor](device-downloads.md#library-preparation). Tests cover exact suffix cleanup, preserving region/version and content identity, refusing unsafe source names, retaining legacy saved destinations, and normal no-overwrite conflicts. Frontend scraping can still make incorrect matches; visually check the selected game rather than treating any image as success.
 
 Debug unit tests, both APK assemblies, Android lint and the complete physical-device runner pass. The updated development APK is installed in place. Cocoon’s temporary **Replace protected fields** setting was returned to off after the repairs.
+
+## Shared game identity and review — 2026-10-07
+
+The physical Android 13 Thor runs the updated development APK. Isolated UI fixtures exercise the real metadata review dialog: opening an uncertain match, rejecting an empty title, cancelling without writing, selecting a candidate, persisting the choice, manually correcting the title, clearing stale artwork/provider IDs, and resetting to server metadata. Tests use disposable preferences and dummy connection credentials; no real ROM is downloaded, renamed or replaced by these checks.
+
+Gateway/exporter tests cover exact platform/hash correspondence, conflicting matches, filename-only candidates, bounded metadata, private URL filtering, atomic replacement and authenticated HTTP responses. Existing files retain their bytes and filesystem identity. Android checks cover metadata serialization, old transfer compatibility and correction isolation by connection/platform/checksum.
+
+After connectivity returned, the live RomM export and download gateway were deployed and verified: 18 files, 17 exact file-hash matches with IGDB artwork, and one filename-only review candidate. The Thor displayed live Pokémon FireRed metadata and artwork in the library and review dialog. A real sandboxed hourly-refresh service run completed successfully and replaced the index atomically. No game download was needed for this verification. Direct Cocoon artwork export remains unsupported.
+
+Validation completed: 31 companion tests, Android unit tests, debug/test/release APK builds, Android lint, the full physical-device runner, Node tests and the static site's link/asset checks pass locally. A physical-device screenshot confirms the review dialog renders with the app's glass surface; this screenshot uses clearly named test fixtures, not live catalog results.

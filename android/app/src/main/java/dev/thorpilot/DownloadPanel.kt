@@ -19,6 +19,8 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("download-folders", Context.MODE_PRIVATE)
     private val store = ConnectionStore(app, "downloads")
+    private val reviews = GameIdentityReviews(app)
+    private val covers = CoverImages()
     private val jobs = ThorDownloadStore(app).also { ThorDownloadService.initialize(app) }
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -44,7 +46,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     fun search(title: String) { query = title; revealSearch = title.isNotBlank() }
     fun start() { if (!polling && !closed) { polling = true; main.post(tick) } }
     fun stop() { polling = false; main.removeCallbacks(tick) }
-    fun close() { stop(); closed = true; generation++; worker.shutdownNow(); root = null; jobHost = null; catalogHost = null }
+    fun close() { stop(); closed = true; generation++; worker.shutdownNow(); covers.close(); root = null; jobHost = null; catalogHost = null }
     fun createView(context: Context): View = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL; root = this; render()
         if ((entries.isEmpty() || revealSearch) && store.url.isNotBlank() && !loading) refresh()
@@ -154,7 +156,9 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private fun renderCatalog() {
         val host = catalogHost ?: return
         host.removeAllViews()
-        val filtered = entries.filter { entry -> LibrarySearch.matches(query, "${entry.title} ${entry.platform}") }
+        val filtered = entries.map { entry ->
+            entry.withIdentity(reviews.load(store.identity, entry) ?: entry.metadata)
+        }.filter { entry -> LibrarySearch.matches(query, "${entry.title} ${entry.platform} ${entry.originalFileName.orEmpty()}") }
         label(host, "${filtered.size} of ${entries.size} games", 12f)
         if (query.isNotBlank()) button(host, "Show all games") { query = ""; render() }
         if (filtered.size > 100) label(host, "Showing 100 of ${filtered.size} matches. Refine your search to find more.", 12f)
@@ -164,14 +168,23 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         filtered.take(100).forEach { entry ->
             val card = LinearLayout(host.context).apply { orientation = LinearLayout.VERTICAL; background = PilotGlass(dp(16).toFloat()); setPadding(dp(14), dp(8), dp(14), dp(12)) }
             host.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
-            label(card, entry.title, 17f)
+            val identity = entry.metadata
+            val heading = LinearLayout(host.context).apply { orientation = LinearLayout.HORIZONTAL }
+            card.addView(heading)
+            identity?.coverUrl?.let { url ->
+                val image = ImageView(host.context).apply { contentDescription = "Cover for ${entry.title}"; scaleType = ImageView.ScaleType.CENTER_CROP }
+                heading.addView(image, LinearLayout.LayoutParams(dp(48), dp(64)).apply { marginEnd = dp(10) })
+                covers.bind(image, url)
+            }
+            label(heading, entry.title, 17f).layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
             label(card, "${entry.platform.uppercase(Locale.ROOT)} · ${size(entry.sizeBytes)}", 12f, true)
             val queued = destination?.let { target -> existing.firstOrNull {
                 ThorDownloadQueue.targetKey(it.target, it.entry.destination()) == ThorDownloadQueue.targetKey(target, entry.destination()) ||
                     (it.target == target && it.entry.id == entry.id && it.entry.sha256.equals(entry.sha256, true))
             } }
             // A legacy queued transfer keeps its saved filename, even if this catalog offer is prepared.
-            val preview = queued?.entry ?: entry
+            val destinationConflict = queued != null && !queued.entry.sha256.equals(entry.sha256, true)
+            val preview = queued?.entry?.takeUnless { destinationConflict } ?: entry
             if (preview.originalFileName != null && preview.originalFileName != preview.fileName) {
                 label(card, "Prepared name: ${preview.fileName}", 12f)
                 val key = "${preview.id}\n${preview.fileName}"
@@ -185,16 +198,82 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
                     disclosure.text = if (expanded) "Hide original filename" else "Show original filename"
                 }
             }
-            val title = if (queued == null) "Download to ${if (internal) "internal storage" else "SD card"}"
+            label(card, when {
+                entry.metadata?.deviceReviewed == true -> "Your saved metadata choice"
+                entry.metadata?.matchStatus == "matched" -> "Matched by file hash"
+                entry.metadata?.matchStatus == "needs_review" -> "Possible match · review artwork and title"
+                else -> "Metadata not matched yet"
+            }, 12f)
+            button(card, "Review title & artwork") { reviewIdentity(entry) }
+            val needsReview = entry.metadata?.let { it.matchStatus == "needs_review" && !it.deviceReviewed } == true
+            val title = if (queued == null && needsReview) "Review before download"
+                else if (queued == null) "Download to ${if (internal) "internal storage" else "SD card"}"
+                else if (destinationConflict) "Destination used by a different file"
                 else if (queued.status == "completed") "Ready on ${if (internal) "internal storage" else "SD card"}"
                 else "In transfers · ${queued.status.replaceFirstChar { it.uppercase() }}"
             button(card, title) {
+                if (needsReview) { reviewIdentity(entry); return@button }
                 val target = selected() ?: run { pick(internal); return@button }
                 ThorDownloadService.start(app, entry, target)
                 renderJob()
             }.apply { isEnabled = queued == null; alpha = if (queued == null) 1f else 0.6f }
 
         }
+    }
+    private fun reviewIdentity(entry: ThorDownloadEntry) {
+        val c = root?.context ?: return
+        val identity = entry.metadata ?: GameIdentityMetadata(entry.platform, entry.sha256, entry.title.take(256), "unmatched")
+        val form = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(10), dp(20), dp(10)) }
+        label(form, "Check the game, platform and artwork. Your choice is saved on this device for this exact file.", 13f)
+        label(form, "${entry.platform.uppercase(Locale.ROOT)} · ${identity.region.orEmpty()} ${identity.revision.orEmpty()}", 12f)
+        label(form, "Source: ${entry.originalFileName ?: entry.fileName}", 11f)
+        identity.coverUrl?.let { url ->
+            val image = ImageView(c).apply { contentDescription = "Current artwork"; scaleType = ImageView.ScaleType.FIT_CENTER }
+            form.addView(image, LinearLayout.LayoutParams(-1, dp(130))); covers.bind(image, url)
+        }
+        if (identity.providerIds.isNotEmpty()) label(form, identity.providerIds.entries.joinToString(" · ") { "${it.key}: ${it.value}" }, 11f)
+        val title = EditText(c).apply {
+            hint = "Game title"; contentDescription = "Correct game title"; setText(identity.canonicalTitle)
+            setTextColor(0xffd6e7ed.toInt()); isSingleLine = true
+            filters = arrayOf(android.text.InputFilter.LengthFilter(256))
+        }
+        form.addView(title, LinearLayout.LayoutParams(-1, dp(48)))
+        label(form, "Changing the title clears its old artwork match. Existing games, saves and queued transfers stay unchanged.", 12f)
+        val scroll = ScrollView(c).apply { addView(form) }
+        val dialog = AlertDialog.Builder(c).setTitle("Review game metadata").setView(scroll)
+            .setNegativeButton("Cancel", null).setNeutralButton("Reset choice", null).setPositiveButton("Save choice", null).create()
+        fun save(metadata: GameIdentityMetadata) {
+            runCatching {
+                entry.withIdentity(metadata).destination()
+                reviews.save(store.identity, entry, metadata)
+            }.onSuccess { dialog.dismiss(); renderCatalog() }
+                .onFailure { title.error = it.message ?: "Could not save this choice." }
+        }
+        if (identity.candidates.isNotEmpty()) {
+            label(form, "Possible matches", 15f)
+            identity.candidates.forEachIndexed { index, candidate ->
+                val row = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }; form.addView(row)
+                candidate.coverUrl?.let { url ->
+                    val image = ImageView(c).apply { contentDescription = "Cover for ${candidate.canonicalTitle}"; scaleType = ImageView.ScaleType.FIT_CENTER }
+                    row.addView(image, LinearLayout.LayoutParams(dp(46), dp(62))); covers.bind(image, url)
+                }
+                button(row, "Use ${candidate.canonicalTitle}") { save(identity.selectCandidate(index)) }
+                    .layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            }
+        }
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                runCatching { identity.reviewTitle(title.text.toString()) }.onSuccess { save(it) }
+                    .onFailure { title.error = "Enter a title without control characters." }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                runCatching { reviews.remove(store.identity, entry) }
+                    .onSuccess { dialog.dismiss(); renderCatalog() }
+                    .onFailure { title.error = "Could not reset this choice. Try again." }
+            }
+        }
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(PilotGlass(dp(24).toFloat()))
     }
     private fun renderJob() {
         val host = jobHost ?: return

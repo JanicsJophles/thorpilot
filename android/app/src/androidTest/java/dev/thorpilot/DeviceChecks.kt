@@ -25,6 +25,7 @@ class DeviceChecks : Instrumentation() {
             ChatChecks.runChecks(targetContext)
             CoverImageChecks.run()
             TransferNamingChecks.run()
+            GameIdentityMetadataChecks.run(targetContext)
             val store = ConnectionStore(targetContext, "connection-test")
             store.clear()
             check(runCatching { store.save("http://example.com", "test-token") }.isFailure)
@@ -47,6 +48,7 @@ class DeviceChecks : Instrumentation() {
 
             val activity = startActivitySync(Intent(targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             waitForIdleSync()
+            MetadataPanelChecks.run(this, activity)
             var uiFailure: Throwable? = null
             runOnMainSync {
                 try {
