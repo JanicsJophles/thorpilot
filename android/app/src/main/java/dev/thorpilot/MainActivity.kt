@@ -397,8 +397,16 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (store.url.isBlank()) {
             body.addView(PilotActionRow(this, "Set up your handheld", "Connect a library and choose your folders", "device") { go("setup") })
         }
-        homeActions().forEach { (title, detail, icon, destination) ->
-            body.addView(PilotActionRow(this, title, detail, icon) { go(destination) })
+        val columns = if (resources.configuration.screenWidthDp >= 620 && resources.configuration.fontScale <= 1.3f) 2 else 1
+        homeActions().chunked(columns).forEach { actions ->
+            val row = horizontal(this)
+            actions.forEachIndexed { index, (title, detail, icon, destination) ->
+                row.addView(PilotActionRow(this, title, detail, icon) { go(destination) },
+                    LinearLayout.LayoutParams(0, -1, 1f).apply {
+                        marginEnd = if (index < actions.lastIndex) dp(this@MainActivity, 10) else 0
+                    })
+            }
+            body.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(this@MainActivity, 8) })
         }
         body.addView(utilityButton(this, if (gameSession.yielded || companionSuppressed) "Reclaim companion screen" else if (lowerEnabled) "Release companion screen" else "Use companion screen") { toggleCompanion() })
     }
