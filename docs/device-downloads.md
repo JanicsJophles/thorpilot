@@ -46,3 +46,18 @@ For concurrency testing, `queue` uses three synthetic files to assert two simult
 The native **Requests** tab refreshes when opened and keeps the last successful response on the device. Each card shows the server status, reported progress, and any client or import diagnostics. **Last checked** identifies the snapshot's age. A failed refresh leaves the previous results visible with the error; it does not turn an old status into a live observation. The snapshot survives app restarts and is scoped to the connection identity. Saving or forgetting a connection clears it.
 
 Imported requests offer **Find in download library**, which opens Download to Thor with the title already searched. Search tolerates accents, punctuation, and filename separators. This is a search handoff, not an identity match: check the platform, title, and destination before choosing a file. A server import does not prove that the separate library gateway exposes the game, or that a device copy exists. Clear the search to browse all available files. Requests and downloads use their own connections and credentials.
+
+## Library preparation
+
+The development app prepares new 3DS base-game CIA transfer names before enqueueing. Observed source names with a leading 16-character `00040000…` application ID and trailing `.legit` or `.piratelegit` label produce misleading Cocoon search names and `0` placeholder icons. Thorpilot moves that ID into a trailing parenthetical tag and removes those exact packaging suffixes. Product, region and version tags remain. For example:
+
+```text
+0004000000174600 Pokemon Super Mystery Dungeon (CTR-P-BPXE) (v0.0.0) (W).piratelegit.cia
+Pokemon Super Mystery Dungeon (CTR-P-BPXE) (v0.0.0) (W) (0004000000174600).cia
+```
+
+Changed entries show their prepared name with the original name available in a disclosure. The original source filename is retained in the transfer record; server identity, byte size and hash remain unchanged. Hash verification and no-overwrite conflict handling still apply. Persisted jobs keep their exact saved destination, including after an app update. Existing device files and saves are never renamed by this feature.
+
+This is the first preparation stage, not a universal ROM converter or artwork service. It intentionally leaves other platforms, updates, DLC and unknown naming patterns unchanged. It does not unpack games, patch content, edit Cocoon's database or guarantee a scraper match. Existing Cocoon entries can be corrected through **Edit → Edit Metadata → Title**, followed by **Scrape game**. See [Cocoon's scraping guide](https://cocoon-shell.com/wiki/scraping/).
+
+Future preparation work should share a versioned identity manifest between the server and device: canonical title, platform, region, revision, content hash, original filename, prepared filename and provider IDs. Provider matching needs confidence and explicit correction for ambiguous results. Artwork export must use supported frontend formats. Repairs to existing libraries need a preview, backup and awareness of save and multi-file references before any rename. These capabilities are planned, not implemented.

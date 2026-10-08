@@ -37,11 +37,12 @@ class ThorDownloadStore(private val context: Context, private val jobId: String?
     }
     val parallelism: Int get() = queue.getInt("parallelism",2).coerceIn(1,3)
     fun setParallelism(value: Int) { require(value in 1..3); check(queue.edit().putInt("parallelism",value).commit()) }
-    internal fun enqueue(entry: ThorDownloadEntry,target: String): String = synchronized(lock) {
+    internal fun enqueue(source: ThorDownloadEntry,target: String): String = synchronized(lock) {
         migrate()
+        val entry = source.preparedForTransfer()
         require(ids().size < 100) { "Queue is full. Clear completed records before adding more games." }
         val key = ThorDownloadQueue.targetKey(target,entry.destination())
-        require(states().none { ThorDownloadQueue.targetKey(it.target,it.entry.destination()) == key }) { "This destination already has a download. Resume it or remove its queue record first." }
+        require(states().none { ThorDownloadQueue.targetKey(it.target,it.entry.destination()) == key || (it.target == target && it.entry.id == entry.id && it.entry.sha256.equals(entry.sha256, true)) }) { "This destination already has a download. Resume it or remove its queue record first." }
         val id = UUID.randomUUID().toString()
         check(ThorDownloadStore(context,id).prefs.edit().putString("entry",entry.json().toString()).putString("target",target).putString("job",id).putString("status","queued").putString("message","Waiting for a transfer slot…").commit())
         saveIds(ids()+id); id

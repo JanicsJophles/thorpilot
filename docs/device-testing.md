@@ -131,3 +131,11 @@ Added isolated instrumentation coverage for selecting an Eden draft, disclosure 
 Verified Animal Crossing: Wild World artwork in a restored compact discovery conversation on the physical Android 13 Thor, opened through Quick Settings over Cocoon. Cards retain the glass treatment and scroll below the fixed copilot header. No new discovery request or game download was required.
 
 The complete device runner passes, including image URL allowlist, invalid/oversized payload and downsampling checks. Debug unit tests, both APK assemblies and Android lint also pass. This covers IGDB recommendation artwork only; other providers and direct Cocoon artwork integration remain unimplemented. The installed development build is newer than the public preview APK.
+
+## Cocoon artwork diagnosis and library preparation — 2026-10-07
+
+On the Thor, missing 3DS artwork appeared as `0` placeholders. The affected display names began with a 16-character title ID and retained `.legit`/`.piratelegit` packaging labels. Editing only Cocoon's title, saving, and scraping that individual entry restored covers for Pokémon Super Mystery Dungeon, Kirby: Planet Robobot, Animal Crossing: New Leaf, Tomodachi Life, Luigi's Mansion: Dark Moon, The Legend of Zelda: Ocarina of Time 3D, New Super Mario Bros. 2 and both Super Mario 3D Land entries. Original ROM paths and saves were not changed. These are manual repair observations, not an automatic Cocoon integration.
+
+New-transfer filename preparation is documented in [Download to Thor](device-downloads.md#library-preparation). Tests cover exact suffix cleanup, preserving region/version and content identity, refusing unsafe source names, retaining legacy saved destinations, and normal no-overwrite conflicts. Frontend scraping can still make incorrect matches; visually check the selected game rather than treating any image as success.
+
+Debug unit tests, both APK assemblies, Android lint and the complete physical-device runner pass. The updated development APK is installed in place. Cocoon’s temporary **Replace protected fields** setting was returned to off after the repairs.
