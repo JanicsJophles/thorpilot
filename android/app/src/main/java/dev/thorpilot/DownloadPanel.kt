@@ -36,6 +36,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     private var polling = false
     private var renderedJob = ""
     private var showCompleted = false
+    private val expandedNames = mutableSetOf<String>()
     private var renderedCatalogQueue = ""
     private val tick = object : Runnable {
         override fun run() { if (!polling || closed) return; renderJob(); main.postDelayed(this, 1000) }
@@ -166,8 +167,24 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
             label(card, entry.title, 17f)
             label(card, "${entry.platform.uppercase(Locale.ROOT)} · ${size(entry.sizeBytes)}", 12f, true)
             val queued = destination?.let { target -> existing.firstOrNull {
-                ThorDownloadQueue.targetKey(it.target, it.entry.destination()) == ThorDownloadQueue.targetKey(target, entry.destination())
+                ThorDownloadQueue.targetKey(it.target, it.entry.destination()) == ThorDownloadQueue.targetKey(target, entry.destination()) ||
+                    (it.target == target && it.entry.id == entry.id && it.entry.sha256.equals(entry.sha256, true))
             } }
+            // A legacy queued transfer keeps its saved filename, even if this catalog offer is prepared.
+            val preview = queued?.entry ?: entry
+            if (preview.originalFileName != null && preview.originalFileName != preview.fileName) {
+                label(card, "Prepared name: ${preview.fileName}", 12f)
+                val key = "${preview.id}\n${preview.fileName}"
+                val original = label(card, "Original server name: ${preview.originalFileName}", 11f).apply {
+                    visibility = if (key in expandedNames) View.VISIBLE else View.GONE
+                }
+                lateinit var disclosure: Button
+                disclosure = button(card, if (key in expandedNames) "Hide original filename" else "Show original filename") {
+                    val expanded = if (!expandedNames.add(key)) { expandedNames.remove(key); false } else true
+                    original.visibility = if (expanded) View.VISIBLE else View.GONE
+                    disclosure.text = if (expanded) "Hide original filename" else "Show original filename"
+                }
+            }
             val title = if (queued == null) "Download to ${if (internal) "internal storage" else "SD card"}"
                 else if (queued.status == "completed") "Ready on ${if (internal) "internal storage" else "SD card"}"
                 else "In transfers · ${queued.status.replaceFirstChar { it.uppercase() }}"
