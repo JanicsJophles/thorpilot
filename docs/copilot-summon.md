@@ -4,7 +4,7 @@ Thorpilot should be easy to call up for one question or action, then dismiss. It
 
 ## Delivery status
 
-The current native app has a Cocoon widget, explicit emulator handoff, companion screen release/reclaim, and short navigation transitions. It does **not** yet ship a global controller hotkey, a draw-over-games bar, or universal live game detection. The full summon experience is a design proposal under evaluation.
+The published 0.1.0-preview.1 app has a Cocoon widget, explicit emulator handoff, companion screen release/reclaim, and short navigation transitions. The development branch adds an optional Quick Settings workspace tile; hardware validation is still pending. It does **not** yet ship a global controller hotkey, a draw-over-games bar, or universal live game detection. The full summon experience is a design proposal under evaluation.
 
 The design explores three states:
 
@@ -13,6 +13,24 @@ The design explores three states:
 3. **Expanded:** a conversation or one action preview. Back/dismiss returns to the previous surface and retains the draft. Potentially disruptive changes need an explicit action; showing a proposal must not apply it.
 
 The proposed identity is a small luminous control surface against AMOLED black, with restrained typography, compact rows, and clear controller focus. Cocoon sets the quality target; its assets and components are not presumed available for copying.
+
+## Add the shortcut
+
+In **My Thor**, choose **Add Quick Settings tile**. Android 13 and later show a system confirmation; you choose whether to add it. On older supported versions, open Quick Settings, choose **Edit**, and drag **Thorpilot** into the active tiles. The same manual route works if the system cannot show the confirmation.
+
+Tap the tile to open the workspace. Local device tools remain available without a server connection. A locked device must be unlocked first. The tile does not request overlay, accessibility, microphone, or screen-capture access. It has no polling loop or ongoing foreground service.
+
+The tile handoff suppresses Thorpilot's companion presentation, including when a game was launched outside Thorpilot. Existing game-screen handoff state stays intact. Reclaiming the companion remains an explicit action. Android and the emulator determine which display receives the app and whether the game pauses; automatic lower-screen placement is not promised.
+
+The existing Cocoon widget and normal app icon remain alternative entry points.
+
+## Implementation and verification
+
+`ThorpilotTileService` uses the intent launch API on Android 11–13 and the required `PendingIntent` launch API on Android 14 and later. The exported service is protected by Android's `BIND_QUICK_SETTINGS_TILE` permission. Tile-add requests use `StatusBarManager` on API 33+ and report cancellation without claiming success. [Android Quick Settings guide](https://developer.android.com/develop/ui/views/quicksettings-tiles), [TileService API](https://developer.android.com/reference/android/service/quicksettings/TileService), [tile-add API](https://developer.android.com/reference/android/app/StatusBarManager)
+
+Instrumentation checks pass on the Android 13 Thor for registration, launch destination, task flags, companion suppression and preservation of game-session state. The native system add-tile prompt and an actual System UI tile tap were exercised on hardware: the shade collapsed, Workspace opened with the pause notice, and Reclaim remained explicit. This is limited shortcut evidence, not a verified uninterrupted in-game overlay.
+
+Remaining hardware coverage: lock/unlock, tile removal, full warm/cold/recreation regression, and emulator pause/resume. Android 14+ PendingIntent behavior is compiled but not runtime-tested on this Android 13 device. Include this regression sequence: warm tile launch while already on Home → verify the notice and Reclaim control → recreate → explicitly reclaim → recreate again with the original tile intent retained. The companion must stay suppressed until the explicit reclaim, and saved-state `false` must override that old intent afterward.
 
 ## Display ownership
 
@@ -25,9 +43,9 @@ The physical test device captures a 1920×1080 top display and a 1240×1080 lowe
 
 Existing Azahar focus/display findings are recorded in [device testing](device-testing.md). Keep them as acceptance constraints rather than assuming a second screen solves focus management.
 
-## First implementation candidate
+## Compact activity candidate
 
-A dedicated compact activity, entered through an Android Quick Settings tile, Cocoon widget, or app shortcut, is the smallest useful slice. It would avoid creating the main activity's secondary Presentation and preserve the recorded yielded state. It needs no accessibility service or draw-over-apps permission.
+The current tile opens the full workspace. A dedicated compact activity, entered through that tile, Cocoon widget, or app shortcut, is a possible next slice. It would avoid creating the main activity's secondary Presentation and preserve the recorded yielded state. It needs no accessibility service or draw-over-apps permission.
 
 This is a quick handoff, **not** a promise of uninterrupted gameplay. Android 14+ tiles use the PendingIntent form of `startActivityAndCollapse`; earlier supported Android versions use the Intent form. Android 13+ can offer the system add-tile request. See the [official tile guide](https://developer.android.com/develop/ui/views/quicksettings-tiles).
 

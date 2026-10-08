@@ -50,6 +50,7 @@ class DeviceChecks : Instrumentation() {
                 GameCareChecks.runPanel(activity)
                 SetupChecks.runPanel(activity)
                 WidgetChecks.run(targetContext)
+                TileChecks.run(targetContext)
                 fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup)
                     (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()
                 fun click(text: String) {
