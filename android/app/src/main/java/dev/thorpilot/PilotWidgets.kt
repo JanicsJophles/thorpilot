@@ -49,7 +49,7 @@ class PilotIcon(private val kind:String): Drawable() {
     }
     private fun paintScene(c: Canvas) {
         val save=c.save()
-        val colors=when(kind){"chat"->intArrayOf(0xff84ffc3.toInt(),0xff00bfae.toInt());"device"->intArrayOf(0xff75caff.toInt(),0xff3558ed.toInt());"requests"->intArrayOf(0xffd2a1ff.toInt(),0xff8533f0.toInt());else->intArrayOf(0xffffc979.toInt(),0xffff754b.toInt())}
+        val colors=when(kind){"chat","sync"->intArrayOf(0xff84ffc3.toInt(),0xff00bfae.toInt());"device"->intArrayOf(0xff75caff.toInt(),0xff3558ed.toInt());"requests"->intArrayOf(0xffd2a1ff.toInt(),0xff8533f0.toInt());else->intArrayOf(0xffffc979.toInt(),0xffff754b.toInt())}
         p.color=0x44000000;c.drawRoundRect(5f,8f,95f,98f,25f,25f,p)
         p.alpha=255;p.shader=LinearGradient(0f,3f,90f,95f,colors,null,Shader.TileMode.CLAMP);c.drawRoundRect(4f,3f,96f,94f,25f,25f,p);p.alpha=255;p.shader=null
         val clip=c.save();c.clipPath(Path().apply{addRoundRect(RectF(4f,3f,96f,94f),25f,25f,Path.Direction.CW)})
@@ -62,6 +62,11 @@ class PilotIcon(private val kind:String): Drawable() {
             "chat"->{
                 val bubble=Path().apply{moveTo(31f,25f);lineTo(70f,25f);quadTo(79f,25f,79f,34f);lineTo(79f,57f);quadTo(79f,66f,70f,66f);lineTo(47f,66f);lineTo(31f,77f);lineTo(33f,66f);quadTo(23f,66f,23f,57f);lineTo(23f,34f);quadTo(23f,25f,31f,25f)};c.drawPath(bubble,p)
                 p.style=Paint.Style.FILL;for(x in listOf(38f,51f,64f))c.drawCircle(x,46f,3.3f,p)
+            }
+            "sync"->{
+                val upper=Path().apply{moveTo(27f,40f);cubicTo(31f,22f,61f,21f,72f,36f);lineTo(73f,26f);moveTo(72f,36f);lineTo(61f,35f)}
+                val lower=Path().apply{moveTo(73f,59f);cubicTo(69f,77f,39f,78f,28f,63f);lineTo(27f,73f);moveTo(28f,63f);lineTo(39f,64f)}
+                c.drawPath(upper,p);c.drawPath(lower,p)
             }
             "device"->{
                 c.drawRoundRect(25f,20f,75f,48f,6f,6f,p);c.drawRoundRect(25f,54f,75f,79f,6f,6f,p)
