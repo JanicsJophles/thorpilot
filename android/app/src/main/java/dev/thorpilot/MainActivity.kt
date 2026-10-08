@@ -244,11 +244,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             android.content.res.ColorStateList.valueOf(0x33FFB547), shape(lavender, 15f), null)
         setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         setOnClickListener { action() }
-        setOnFocusChangeListener { view, focused ->
-            view.scaleX = if (focused) 1.025f else 1f
-            view.scaleY = if (focused) 1.025f else 1f
-            view.alpha = if (focused) 1f else .94f
-        }
+
         minHeight = dp(c, 48); minimumHeight = dp(c, 48)
         stateListAnimator = null
         PilotTypography.body(this)
@@ -595,7 +591,6 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         addView(ImageView(c).apply { setImageDrawable(PilotIcon(kind)); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(c, 36), dp(c, 36)))
         addView(label(c, title, 13f, true).apply { gravity = Gravity.CENTER; setPadding(dp(c, 14), 0, 0, 0); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO })
         setOnClickListener { action() }
-        setOnFocusChangeListener { view, focused -> view.scaleX = if (focused) 1.035f else 1f; view.scaleY = if (focused) 1.035f else 1f }
     }
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)

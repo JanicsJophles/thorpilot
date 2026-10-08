@@ -18,10 +18,10 @@ class PilotFocusRing(private val density: Float) : Drawable() {
         if (rect.isEmpty) return
         val radius = minOf(22f * density, rect.height() / 2f)
         paint.color = 0x50ffb547
-        paint.strokeWidth = 9f * density
+        paint.strokeWidth = 6f * density
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.color = 0xffffb547.toInt()
-        paint.strokeWidth = 3f * density
+        paint.strokeWidth = 2f * density
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.color = 0xffffe2af.toInt()
         paint.strokeWidth = 1f * density
