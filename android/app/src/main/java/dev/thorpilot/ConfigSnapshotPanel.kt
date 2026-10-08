@@ -57,14 +57,14 @@ class ConfigSnapshotPanel(context: Context, private val onPickDocument: () -> Un
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun label(parent: LinearLayout, text: String, size: Float = 13f, strong: Boolean = false) {
         parent.addView(TextView(parent.context).apply {
-            this.text = text; textSize = size; setTextColor(if (strong) 0xfff2f6fc.toInt() else 0xffafc1d0.toInt())
+            this.text = text; textSize = size; setTextColor(if (strong) 0xfff4f2ec.toInt() else 0xffa9a69e.toInt())
             if (strong) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setPadding(0, dp(context, 5), 0, dp(context, 9))
         })
     }
     private fun button(parent: LinearLayout, title: String, enabled: Boolean = true, action: () -> Unit) {
         parent.addView(Button(parent.context).apply {
-            text = title; textSize = 14f; isAllCaps = false; setTextColor(0xff6cf7d0.toInt())
+            text = title; textSize = 14f; isAllCaps = false; setTextColor(0xffffb547.toInt())
             background = PilotGlass(dp(context, 16).toFloat()); isEnabled = enabled && !busy
             alpha = if (isEnabled) 1f else .5f; setOnClickListener { action() }
         }, LinearLayout.LayoutParams(-1, dp(parent.context, 48)).apply { topMargin = dp(parent.context, 8) })
@@ -98,7 +98,7 @@ class ConfigSnapshotPanel(context: Context, private val onPickDocument: () -> Un
         label(card, "Backup name", 13f, true)
         card.addView(EditText(host.context).apply {
             setText(snapshotName); contentDescription = "Backup name"; textSize = 14f
-            setTextColor(0xfff2f6fc.toInt()); isSingleLine = true; filters = arrayOf(InputFilter.LengthFilter(80))
+            setTextColor(0xfff4f2ec.toInt()); isSingleLine = true; filters = arrayOf(InputFilter.LengthFilter(80))
             imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_ACTION_DONE
             addTextChangedListener(object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}

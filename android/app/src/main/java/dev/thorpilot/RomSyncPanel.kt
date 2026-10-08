@@ -135,10 +135,10 @@ class RomSyncPanel(context: Context, private val pick: (Boolean) -> Unit) {
         val host = root ?: return; val c = host.context; host.removeAllViews()
         fun dp(n: Int) = (n * c.resources.displayMetrics.density).toInt()
         fun text(value: String, size: Float = 13f) { host.addView(TextView(c).apply {
-            text = value; textSize = size; setTextColor(0xffd6e7ed.toInt()); setPadding(0, dp(8), 0, dp(8))
+            text = value; textSize = size; setTextColor(0xfff4f2ec.toInt()); setPadding(0, dp(8), 0, dp(8))
         }) }
         fun button(title: String, enabled: Boolean = true, action: () -> Unit) { host.addView(Button(c).apply {
-            text = title; isAllCaps = false; isEnabled = enabled && !busy; setTextColor(0xff6cf7d0.toInt())
+            text = title; isAllCaps = false; isEnabled = enabled && !busy; setTextColor(0xffffb547.toInt())
             background = PilotGlass(dp(16).toFloat()); setOnClickListener { action() }
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) }) }
         text("Library sync", 24f)

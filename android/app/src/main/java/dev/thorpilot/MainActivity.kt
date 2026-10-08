@@ -20,9 +20,9 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
 class MainActivity : Activity(), DisplayManager.DisplayListener {
-    private val ink = Color.rgb(242, 246, 252)
-    private val iris = Color.rgb(108, 247, 208)
-    private val mist = Color.rgb(3, 10, 17)
+    private val ink = Color.rgb(244, 242, 236)
+    private val iris = Color.rgb(255, 181, 71)
+    private val mist = Color.BLACK
     private lateinit var displays: DisplayManager
     private lateinit var store: ConnectionStore
     private lateinit var chatPanel: ChatPanel
@@ -217,9 +217,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     override fun onDisplayRemoved(id: Int) { showCompanion(); render() }
     override fun onDisplayChanged(id: Int) { showCompanion(); if (page == "setup") render() }
 
-    private val muted = Color.rgb(174, 192, 208)
-    private val paper = Color.argb(245, 12, 23, 35)
-    private val lavender = Color.rgb(25, 40, 62)
+    private val muted = Color.rgb(169, 166, 158)
+    private val paper = Color.rgb(11, 12, 16)
+    private val lavender = Color.rgb(19, 21, 27)
     private fun dp(c: Context, value: Int) = (value * c.resources.displayMetrics.density).toInt()
     private fun shape(color: Int, radius: Float = 24f) = GradientDrawable().apply {
         setColor(color); cornerRadius = radius * resources.displayMetrics.density
@@ -235,27 +235,25 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         typeface = Typeface.create(if (bold) "sans-serif-rounded" else "sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
         setPadding(0, dp(c, 3), 0, dp(c, 7))
         setLineSpacing(dp(c, 2).toFloat(), 1f)
+        if (bold && size >= 19f) PilotTypography.heading(this) else PilotTypography.body(this)
     }
     private fun button(c: Context, value: String, action: () -> Unit) = Button(c).apply {
         text = value; isAllCaps = false; textSize = 14f; setTextColor(ink)
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         background = android.graphics.drawable.RippleDrawable(
-            android.content.res.ColorStateList.valueOf(0x3383DECF), shape(lavender, 15f), null)
+            android.content.res.ColorStateList.valueOf(0x33FFB547), shape(lavender, 15f), null)
         setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         setOnClickListener { action() }
-        setOnFocusChangeListener { view, focused ->
-            view.scaleX = if (focused) 1.025f else 1f
-            view.scaleY = if (focused) 1.025f else 1f
-            view.alpha = if (focused) 1f else .94f
-        }
+
         minHeight = dp(c, 48); minimumHeight = dp(c, 48)
         stateListAnimator = null
+        PilotTypography.body(this)
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6) }
     }
     private fun utilityButton(c: Context, value: String, action: () -> Unit) = button(c, value, action).apply {
         textSize = 12f
         background = android.graphics.drawable.InsetDrawable(
-            android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x3383decf), PilotGlass(dp(c, 16).toFloat()), null),
+            android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33ffb547), PilotGlass(dp(c, 16).toFloat()), null),
             0, dp(c, 6), 0, dp(c, 6))
         setPadding(dp(c, 12), dp(c, 2), dp(c, 12), dp(c, 2))
         layoutParams = LinearLayout.LayoutParams(-2, dp(c, 48))
@@ -292,7 +290,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         navigation.forEach { (id, item) ->
             item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")
             item.background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
             item.setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
         }
         body.removeAllViews()
@@ -339,9 +337,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             "settings" -> settingsPage()
             else -> workspacePage()
         }
+        PilotTypography.applyTo(body)
     }
     private fun buildShell() {
-        val root = column(this).apply { background = PilotWallpaper() }
+        val root = column(this).apply { setBackgroundColor(Color.BLACK) }
         root.setOnApplyWindowInsetsListener { v, insets ->
             val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars())
             v.setPadding(dp(this, 22) + bars.left, dp(this, 8) + bars.top,
@@ -358,7 +357,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             val item = button(this, name) { go(id) }.apply {
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(0x3383DECF), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
+                    android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotGlass(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
                 setTextColor(if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) iris else muted)
             }
             navigation[id] = item
@@ -376,7 +375,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         pageScroll = scroll
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        PilotTypography.applyTo(root)
         setContentView(root)
+        PilotFocus.install(root)
     }
     private fun toggleCompanion() {
         if (gameSession.yielded || companionSuppressed) {
@@ -388,23 +389,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         showCompanion(); render()
     }
     private fun workspacePage() {
-        val wide = resources.configuration.screenWidthDp >= 620
-        val scene = LinearLayout(this).apply {
-            orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(context, 12), dp(context, 5), dp(context, 26), dp(context, 18))
-        }
-        val artwork = ImageView(this).apply { setImageDrawable(PilotJourney()); contentDescription = "A handheld drifting around a little moon" }
-        if (wide) scene.addView(artwork, LinearLayout.LayoutParams(dp(this, 210), dp(this, 140)))
-        else scene.addView(artwork, LinearLayout.LayoutParams(-1, dp(this, 125)))
-        val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 20), 0, 0, 0) }
-        introduction.addView(label(this, "What would you like to play?", 23f, true))
-        introduction.addView(label(this, "Find a game, bring it over, make it yours.", 14f).apply { setTextColor(muted) })
-        introduction.addView(button(this, if (store.url.isBlank()) "Set up my handheld" else "Find my next game") { go(if (store.url.isBlank()) "setup" else "chat") }.apply {
-            setTextColor(mist); background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xffabffe0.toInt(), iris)).apply { cornerRadius = dp(this@MainActivity, 22).toFloat() }
-        }, LinearLayout.LayoutParams(dp(this, 230), dp(this, 48)).apply { topMargin = dp(this@MainActivity, 10) })
-        if (wide) scene.addView(introduction, LinearLayout.LayoutParams(0, -2, 1f)) else scene.addView(introduction)
-        body.addView(scene)
+        body.addView(label(this, "A little help on your Thor.", 26f, true))
+        body.addView(label(this, "Your games, requests and device — in one place.", 14f).apply { setTextColor(muted) })
+        body.addView(button(this, if (store.url.isBlank()) "Set up my handheld" else "Ask Thorpilot") { go(if (store.url.isBlank()) "setup" else "chat") }.apply {
+            setTextColor(Color.rgb(30, 20, 4)); background = shape(iris, 18f)
+            layoutParams = LinearLayout.LayoutParams(dp(this@MainActivity, 240), dp(this@MainActivity, 48)).apply { topMargin = dp(this@MainActivity, 8); bottomMargin = dp(this@MainActivity, 12) }
+        })
         sessionBar()
         val dock = horizontal(this).apply {
             background = PilotGlass(dp(this@MainActivity, 24).toFloat())
@@ -436,7 +426,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             setPadding(dp(context, 14), dp(context, 12), dp(context, 14), dp(context, 12))
             setLineSpacing(dp(context, 5).toFloat(), 1f)
             background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x3383decf), PilotGlass(dp(context, 22).toFloat()), null)
+                android.content.res.ColorStateList.valueOf(0x33ffb547), PilotGlass(dp(context, 22).toFloat()), null)
             val tile = PilotIcon(icon).apply { setBounds(0, 0, dp(context, 40), dp(context, 40)) }
             setCompoundDrawablesRelative(tile, null, null, null)
             compoundDrawablePadding = dp(context, 14)
@@ -589,18 +579,18 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         })
     }
     private fun launchTile(c: Context, title: String, kind: String, action: () -> Unit): View = LinearLayout(c).apply {
-        orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+        orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = dp(c, 64)
         isClickable = true; isFocusable = true; contentDescription = title
         setPadding(dp(c, 8), dp(c, 8), dp(c, 8), dp(c, 12))
         background = android.graphics.drawable.StateListDrawable().apply {
             addState(intArrayOf(android.R.attr.state_focused), PilotGlass(dp(c, 24).toFloat(), true))
             addState(intArrayOf(android.R.attr.state_pressed), PilotGlass(dp(c, 24).toFloat(), true))
-            addState(intArrayOf(), android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            addState(intArrayOf(), PilotGlass(dp(c, 18).toFloat()))
         }
-        addView(ImageView(c).apply { setImageDrawable(PilotIcon(kind)); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(c, 96), dp(c, 96)))
-        addView(label(c, title, 13f, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 9), 0, 0); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO })
+        addView(ImageView(c).apply { setImageDrawable(PilotIcon(kind)); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(c, 36), dp(c, 36)))
+        addView(label(c, title, 13f, true).apply { gravity = Gravity.CENTER; setPadding(dp(c, 14), 0, 0, 0); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO })
         setOnClickListener { action() }
-        setOnFocusChangeListener { view, focused -> view.scaleX = if (focused) 1.035f else 1f; view.scaleY = if (focused) 1.035f else 1f }
     }
     private fun showCompanion() {
         val target = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
@@ -616,7 +606,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
         val c = panel.context
         val content = column(c).apply {
-            if (page == "setup") setBackgroundColor(Color.BLACK) else background = PilotWallpaper()
+            setBackgroundColor(Color.BLACK)
         }
         if (page != "setup") {
         val header = horizontal(c)
@@ -630,14 +620,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             content.addView(utilityButton(c, "Back to workspace") { go("home") })
             content.addView(chatPanel.createView(c, compact = true))
         } else {
-        val shortcuts = horizontal(c).apply { gravity = Gravity.CENTER }
-        addWeighted(shortcuts, launchTile(c, "Find a game", "chat") { go("chat") }, 1f, 16)
-        addWeighted(shortcuts, launchTile(c, "My Thor", "device") { go("device") })
-        content.addView(shortcuts, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) })
-        val second = horizontal(c).apply { gravity = Gravity.CENTER }
-        addWeighted(second, launchTile(c, "Requests", "requests") { go("requests") }, 1f, 16)
-        addWeighted(second, launchTile(c, "Connection", "settings") { go("settings") })
-        content.addView(second, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 10) })
+        listOf(Triple("Ask Thorpilot", "chat", "chat"), Triple("Game care", "settings", "care"), Triple("Requests", "requests", "requests"), Triple("On this Thor", "device", "device")).forEach { (title, icon, destination) ->
+            content.addView(launchTile(c, title, icon) { go(destination) }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 8) })
+        }
+
         }
         content.addView(utilityButton(c, "Release this screen") {
             lowerEnabled = false
@@ -645,7 +631,9 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             showCompanion(); render()
         }.apply { layoutParams = LinearLayout.LayoutParams(dp(c, 190), dp(c, 48)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(c, 6) } })
         val scroll = ScrollView(c).apply { setBackgroundColor(Color.TRANSPARENT); isFillViewport = true; addView(content) }
+        PilotTypography.applyTo(scroll)
         panel.setContentView(scroll)
+        PilotFocus.install(scroll)
         panel.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(mist))
         try {
             if (!panel.isShowing) panel.show()

@@ -63,12 +63,12 @@ class RequestPanel(context: Context, private val connect: () -> Unit, private va
     private fun dp(value: Int) = (value * app.resources.displayMetrics.density).toInt()
     private fun label(parent: LinearLayout, text: String, size: Float = 13f, accent: Boolean = false) {
         parent.addView(TextView(parent.context).apply {
-            this.text = text; textSize = size; setTextColor(if (accent) 0xff6cf7d0.toInt() else 0xffd6e7ed.toInt())
+            this.text = text; textSize = size; setTextColor(if (accent) 0xffffb547.toInt() else 0xfff4f2ec.toInt())
             setPadding(0, dp(5), 0, dp(5))
         })
     }
     private fun button(parent: LinearLayout, text: String, action: () -> Unit): Button = Button(parent.context).apply {
-        this.text = text; textSize = 13f; isAllCaps = false; setTextColor(0xff6cf7d0.toInt()); background = PilotGlass(dp(14).toFloat())
+        this.text = text; textSize = 13f; isAllCaps = false; setTextColor(0xffffb547.toInt()); background = PilotGlass(dp(14).toFloat())
         setOnClickListener { action() }
         parent.addView(this, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
     }
@@ -100,7 +100,7 @@ class RequestPanel(context: Context, private val connect: () -> Unit, private va
         button(actions, "Download to Thor") { browse("") }.layoutParams = LinearLayout.LayoutParams(0, dp(46), 1f)
         host.addView(EditText(host.context).apply {
             hint = "Find a request or platform"; contentDescription = "Search requests"; isSingleLine = true
-            setTextColor(0xffd6e7ed.toInt()); setHintTextColor(0xffaebed0.toInt()); textSize = 14f; setText(query)
+            setTextColor(0xfff4f2ec.toInt()); setHintTextColor(0xffa9a69e.toInt()); textSize = 14f; setText(query)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { query = s?.toString().orEmpty(); renderCards() }
@@ -142,7 +142,7 @@ class RequestPanel(context: Context, private val connect: () -> Unit, private va
             request.progress?.let { progress ->
                 card.addView(ProgressBar(host.context, null, android.R.attr.progressBarStyleHorizontal).apply {
                     max = 1000; this.progress = (progress * 10).toInt(); contentDescription = "Server progress ${progress.toInt()} percent"
-                    progressTintList = android.content.res.ColorStateList.valueOf(0xff6cf7d0.toInt())
+                    progressTintList = android.content.res.ColorStateList.valueOf(0xffffb547.toInt())
                 }, LinearLayout.LayoutParams(-1, dp(5)))
                 label(card, "Server progress: ${progress.toInt()}%", 12f)
             }

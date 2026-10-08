@@ -11,11 +11,9 @@ class PilotGlass(private val radius: Float = 28f, private val selected: Boolean 
     override fun onBoundsChange(bounds: Rect) {
         surface.set(bounds); surface.inset(1f, 1f)
         if (surface.isEmpty) return
-        fill.shader = LinearGradient(0f, surface.top, 0f, surface.bottom,
-            if (selected) 0xf037726e.toInt() else 0xf01a2730.toInt(),
-            if (selected) 0xfa0b353c.toInt() else 0xfa070d16.toInt(), Shader.TileMode.CLAMP)
-        rim.shader = LinearGradient(0f, surface.top, 0f, surface.bottom,
-            0x807edfd8.toInt(), 0x12253b49, Shader.TileMode.CLAMP)
+        fill.color = if (selected) 0xff1c1f27.toInt() else 0xff13151b.toInt()
+        rim.color = if (selected) 0xffffb547.toInt() else 0xff2a2e38.toInt()
+
     }
     override fun draw(c: Canvas) {
         if (surface.isEmpty) return
@@ -49,15 +47,10 @@ class PilotIcon(private val kind:String): Drawable() {
     }
     private fun paintScene(c: Canvas) {
         val save=c.save()
-        val colors=when(kind){"chat","sync"->intArrayOf(0xff84ffc3.toInt(),0xff00bfae.toInt());"device"->intArrayOf(0xff75caff.toInt(),0xff3558ed.toInt());"requests"->intArrayOf(0xffd2a1ff.toInt(),0xff8533f0.toInt());else->intArrayOf(0xffffc979.toInt(),0xffff754b.toInt())}
-        p.color=0x44000000;c.drawRoundRect(5f,8f,95f,98f,25f,25f,p)
-        p.alpha=255;p.shader=LinearGradient(0f,3f,90f,95f,colors,null,Shader.TileMode.CLAMP);c.drawRoundRect(4f,3f,96f,94f,25f,25f,p);p.alpha=255;p.shader=null
-        val clip=c.save();c.clipPath(Path().apply{addRoundRect(RectF(4f,3f,96f,94f),25f,25f,Path.Direction.CW)})
-        p.color=0x22ffffff
-        for(i in 0..2) c.drawRoundRect((i*39-11).toFloat(),-15f,(i*39+20).toFloat(),52f,12f,12f,p)
-        p.alpha=255;p.shader=LinearGradient(0f,5f,0f,55f,0x30ffffff,Color.TRANSPARENT,Shader.TileMode.CLAMP);c.drawOval(-10f,-20f,110f,55f,p);p.alpha=255;p.shader=null;c.restoreToCount(clip)
-        p.style=Paint.Style.STROKE;p.strokeWidth=1.2f;p.color=0x66ffffff;c.drawRoundRect(4.8f,3.8f,95.2f,93.2f,24f,24f,p)
-        p.strokeWidth=5.2f;p.strokeCap=Paint.Cap.ROUND;p.strokeJoin=Paint.Join.ROUND;p.color=0xfffaffff.toInt()
+        val colors = intArrayOf(0xffffb547.toInt(), 0xff13151b.toInt())
+        p.style=Paint.Style.FILL; p.color=0xff1c1f27.toInt()
+        c.drawRoundRect(4f,3f,96f,94f,18f,18f,p)
+        p.style=Paint.Style.STROKE; p.strokeWidth=4f; p.strokeCap=Paint.Cap.ROUND; p.strokeJoin=Paint.Join.ROUND; p.color=0xffffb547.toInt()
         when(kind){
             "chat"->{
                 val bubble=Path().apply{moveTo(31f,25f);lineTo(70f,25f);quadTo(79f,25f,79f,34f);lineTo(79f,57f);quadTo(79f,66f,70f,66f);lineTo(47f,66f);lineTo(31f,77f);lineTo(33f,66f);quadTo(23f,66f,23f,57f);lineTo(23f,34f);quadTo(23f,25f,31f,25f)};c.drawPath(bubble,p)

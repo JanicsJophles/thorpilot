@@ -3,8 +3,8 @@
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:colorAccent">#6CF7D0</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:navigationBarColor">#030A11</item>
-        <item name="android:statusBarColor">#030A11</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
     <style name="CopilotTheme" parent="android:style/Theme.Material.Dialog.NoActionBar">
