@@ -9,6 +9,7 @@ const pages = [
   ['install', 'Install Thorpilot', 'A direct Android preview download and guided local setup. No computer or account required.'],
   ['copilot-summon', 'Summon the copilot', 'A compact in-game interaction proposal, Android limits, and lightweight motion.'],
   ['device-downloads', 'Download to Thor', 'Bring your own library to SD or internal storage with resumable transfers and checksum verification.'],
+  ['duplicate-audit', 'Review duplicate games', 'Read-only evidence for identical files and possible regional variants.'],
   ['metadata-bridge', 'Library metadata', 'Reuse library artwork and review uncertain game identities before transfer.'],
   ['configuration-snapshots', 'Configuration snapshots', 'Exact local backups, explicit restoration, and the limits of global emulator settings.'],
   ['game-care', 'Game care', 'A manual graphics experiment journal: baseline, trial, observation and rollback.'],

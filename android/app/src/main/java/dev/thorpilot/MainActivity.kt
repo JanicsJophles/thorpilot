@@ -395,11 +395,11 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             setPadding(dp(context, 12), dp(context, 5), dp(context, 26), dp(context, 18))
         }
         val artwork = ImageView(this).apply { setImageDrawable(PilotJourney()); contentDescription = "A handheld drifting around a little moon" }
-        if (wide) scene.addView(artwork, LinearLayout.LayoutParams(0, dp(this, 166), 1.05f))
-        else scene.addView(artwork, LinearLayout.LayoutParams(-1, dp(this, 175)))
+        if (wide) scene.addView(artwork, LinearLayout.LayoutParams(dp(this, 210), dp(this, 140)))
+        else scene.addView(artwork, LinearLayout.LayoutParams(-1, dp(this, 125)))
         val introduction = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(context, 20), 0, 0, 0) }
-        introduction.addView(label(this, "Your next adventure\nstarts with a conversation.", 24f, true))
-        introduction.addView(label(this, "Find a hidden gem. Check your library.\nLet’s make more time for play.", 14f).apply { setTextColor(muted) })
+        introduction.addView(label(this, "What would you like to play?", 23f, true))
+        introduction.addView(label(this, "Find a game, bring it over, make it yours.", 14f).apply { setTextColor(muted) })
         introduction.addView(button(this, if (store.url.isBlank()) "Set up my handheld" else "Find my next game") { go(if (store.url.isBlank()) "setup" else "chat") }.apply {
             setTextColor(mist); background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0xffabffe0.toInt(), iris)).apply { cornerRadius = dp(this@MainActivity, 22).toFloat() }
         }, LinearLayout.LayoutParams(dp(this, 230), dp(this, 48)).apply { topMargin = dp(this@MainActivity, 10) })
@@ -461,7 +461,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(button(this, "Download to Thor") { go("downloads") })
         body.addView(button(this, "Library sync") { go("library-sync") })
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
-        body.addView(label(this, "Thorpilot $version · Early preview", 12f).apply { setTextColor(muted) })
+        body.addView(label(this, "Thorpilot $version · ${BuildConfig.BUILD_TYPE} · ${BuildConfig.SOURCE_REVISION}", 12f).apply { setTextColor(muted) })
         body.addView(utilityButton(this, "Install and update guide") {
             runCatching { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
                 android.net.Uri.parse("https://thorpilot.rackmind.ai/docs/install.html"))) }
@@ -510,14 +510,16 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     private fun sessionBar() {
         if (gameSession.lastPackage.isBlank()) return
-        val box = surface(this).apply { setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 10)) }
+        val box = surface(this).apply { setPadding(dp(context, 14), dp(context, 6), dp(context, 14), dp(context, 6)) }
         val app = playAppName(gameSession.lastPackage)
-        box.addView(label(this, if (gameSession.yielded) "Room for your game" else "Back to your play space", 16f, true))
-        box.addView(label(this, if (gameSession.yielded) "Thorpilot is leaving the other screen free. Resume $app, or reclaim it when you’re ready." else "Open $app again. Your emulator manages the game session.", 12f).apply { setTextColor(muted) })
-        val actions = horizontal(this)
-        addWeighted(actions, utilityButton(this, "Return to $app") { launchPlayApp(gameSession.lastPackage) }, 1f, 12)
-        if (gameSession.yielded || companionSuppressed) addWeighted(actions, utilityButton(this, "Reclaim companion") { reclaimCompanion() })
-        box.addView(actions)
+        val row = horizontal(this)
+        val summary = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        summary.addView(label(this, "Back to $app", 15f, true))
+        summary.addView(label(this, if (gameSession.yielded) "Your other screen is free" else "Continue in your emulator", 11f).apply { setTextColor(muted) })
+        addWeighted(row, summary, 1f, 12)
+        row.addView(utilityButton(this, "Open $app") { launchPlayApp(gameSession.lastPackage) })
+        if (gameSession.yielded || companionSuppressed) row.addView(utilityButton(this, "Reclaim screen") { reclaimCompanion() })
+        box.addView(row)
         body.addView(box)
     }
     private fun settingsPage() {
