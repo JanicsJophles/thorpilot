@@ -425,43 +425,72 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(label(this, "Touch or D-pad to explore     •     Changes stay in your control", 11f).apply { setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 10), 0, 0) })
     }
     private fun requestsPage() { body.addView(requests.createView(this)) }
+    private fun deviceAction(title: String, detail: String, icon: String, destination: String): Button =
+        button(this, title) { go(destination) }.apply {
+            val copy = "$title\n$detail"
+            text = android.text.SpannableString(copy).apply {
+                setSpan(android.text.style.RelativeSizeSpan(.82f), title.length + 1, length, 0)
+                setSpan(android.text.style.ForegroundColorSpan(muted), title.length + 1, length, 0)
+            }
+            gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            setPadding(dp(context, 14), dp(context, 12), dp(context, 14), dp(context, 12))
+            setLineSpacing(dp(context, 5).toFloat(), 1f)
+            background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x3383decf), PilotGlass(dp(context, 22).toFloat()), null)
+            val tile = PilotIcon(icon).apply { setBounds(0, 0, dp(context, 40), dp(context, 40)) }
+            setCompoundDrawablesRelative(tile, null, null, null)
+            compoundDrawablePadding = dp(context, 14)
+            minHeight = dp(context, 82)
+            minimumHeight = dp(context, 82)
+        }
+
     private fun devicePage() {
         val title = horizontal(this)
-        addWeighted(title, label(this, "Meet your ${Build.MODEL}", 25f, true))
-        title.addView(label(this, "Android ${Build.VERSION.RELEASE}", 13f).apply { setTextColor(muted) })
+        addWeighted(title, label(this, "Your ${Build.MODEL}", 23f, true))
+        title.addView(label(this, "Android ${Build.VERSION.RELEASE}", 12f).apply { setTextColor(muted) })
         body.addView(title)
-        body.addView(utilityButton(this, "Set up my handheld") { go("setup") })
-        body.addView(utilityButton(this, "Add Quick Settings tile") { ThorpilotTileService.requestAdd(this) })
-        sessionBar()
-        val screens = horizontal(this).apply { gravity = Gravity.TOP }
-        displays.displays.forEachIndexed { index, display ->
-            val mode = display.mode
-            val box = surface(this)
-            box.addView(label(this, if (index == 0) "Main display" else "Companion display", 19f, true))
-            box.addView(label(this, "${mode.physicalWidth} × ${mode.physicalHeight}", 27f, true).apply { setTextColor(iris) })
-            box.addView(label(this, "${mode.refreshRate.toInt()} Hz   •   Display ${display.displayId}", 13f).apply { setTextColor(muted) })
-            addWeighted(screens, box, 1f, if (index < displays.displays.size - 1) 12 else 0)
-        }
-        body.addView(screens)
-        body.addView(label(this, "Your play space", 19f, true))
-        listOf("Cocoon" to "rip.moth.cocoonshell", "Azahar" to "org.azahar_emu.azahar",
-            "Eden" to "dev.eden.eden_emulator", "melonDualDS" to "me.magnum.melondualds").chunked(2).forEach { row ->
-            val apps = horizontal(this)
-            row.forEachIndexed { index, (name, pkg) ->
-                val intent = packageManager.getLaunchIntentForPackage(pkg)
-                addWeighted(apps, button(this, if (intent == null) "$name • unavailable" else "Open $name") {
-                    if (intent != null) launchPlayApp(pkg)
-                }.apply { isEnabled = intent != null; alpha = if (intent == null) .5f else 1f }, 1f, if (index == 0) 10 else 0)
+        body.addView(label(this, "Your games, wherever you keep them.", 13f).apply { setTextColor(muted) })
+        val actions = listOf(
+            deviceAction("Download to Thor", "Bring games from your library", "requests", "downloads"),
+            deviceAction("On this device", "Browse SD and internal storage", "device", "device-library"),
+            deviceAction("Library sync", "Preview and copy between folders", "sync", "library-sync"),
+            deviceAction("Game care", "Track settings and graphics fixes", "care", "care")
+        )
+        val columns = if (resources.configuration.screenWidthDp >= 620 && resources.configuration.fontScale <= 1.3f) 2 else 1
+        actions.chunked(columns).forEach { group ->
+            val row = horizontal(this).apply { gravity = Gravity.TOP }
+            group.forEachIndexed { index, action ->
+                row.addView(action, LinearLayout.LayoutParams(0, -1, 1f).apply {
+                    marginEnd = if (index < group.lastIndex) dp(this@MainActivity, 12) else 0
+                })
             }
-            body.addView(apps, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(this@MainActivity, 8) })
+            body.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(this@MainActivity, 10) })
         }
-        body.addView(label(this, "Opening an app reserves the other screen until you reclaim it.", 12f).apply { setTextColor(muted) })
-        body.addView(button(this, "Game care") { go("care") })
-        body.addView(button(this, "On this device · SD / internal") { go("device-library") })
-        body.addView(button(this, "Download to Thor") { go("downloads") })
-        body.addView(button(this, "Library sync") { go("library-sync") })
+        body.addView(label(this, "Your play space", 16f, true).apply { setPadding(0, dp(context, 18), 0, dp(context, 4)) })
+        listOf("Cocoon" to "rip.moth.cocoonshell", "Azahar" to "org.azahar_emu.azahar",
+            "Eden" to "dev.eden.eden_emulator", "melonDualDS" to "me.magnum.melondualds").chunked(columns * 2).forEach { group ->
+            val row = horizontal(this)
+            group.forEachIndexed { index, (name, pkg) ->
+                val available = packageManager.getLaunchIntentForPackage(pkg) != null
+                addWeighted(row, utilityButton(this, if (available) name else "$name · unavailable") {
+                    if (available) launchPlayApp(pkg)
+                }.apply { isEnabled = available; alpha = if (available) 1f else .5f }, 1f, if (index < group.lastIndex) 8 else 0)
+            }
+            body.addView(row)
+        }
+        body.addView(label(this, "Opening an app frees the other screen for play.", 11f).apply { setTextColor(muted) })
+        val setupActions = horizontal(this)
+        addWeighted(setupActions, utilityButton(this, "Set up my handheld") { go("setup") }, 1f, 12)
+        addWeighted(setupActions, utilityButton(this, "Add Quick Settings tile") { ThorpilotTileService.requestAdd(this) })
+        body.addView(setupActions)
+        body.addView(label(this, "Device details", 15f, true).apply { setPadding(0, dp(context, 14), 0, dp(context, 3)) })
+        displays.displays.forEach { display ->
+            val mode = display.mode
+            val role = if (display.displayId == Display.DEFAULT_DISPLAY) "Main" else "Companion"
+            body.addView(label(this, "$role · ${mode.physicalWidth} × ${mode.physicalHeight} · ${mode.refreshRate.toInt()} Hz · Display ${display.displayId}", 11f).apply { setTextColor(muted) })
+        }
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
-        body.addView(label(this, "Thorpilot $version · ${BuildConfig.BUILD_TYPE} · ${BuildConfig.SOURCE_REVISION}", 12f).apply { setTextColor(muted) })
+        body.addView(label(this, "Thorpilot $version · ${BuildConfig.BUILD_TYPE} · ${BuildConfig.SOURCE_REVISION}", 11f).apply { setTextColor(muted) })
         body.addView(utilityButton(this, "Install and update guide") {
             runCatching { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
                 android.net.Uri.parse("https://thorpilot.rackmind.ai/docs/install.html"))) }

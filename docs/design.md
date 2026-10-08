@@ -6,6 +6,8 @@ The native palette uses deep ink #030a11, glass slate #1a2730, mint #6cf7d0, ice
 
 The workspace uses a compact illustration beside one primary action. Emulator handoff stays in a short row, with library and screen controls below. Keep 48dp touch targets even when the visible controls are smaller. My Thor shows the build type and source revision so development installs can be distinguished from the public preview. A `dirty` suffix means the APK was built with local tracked changes; `unknown` means source revision information was unavailable.
 
+My Thor puts four common tasks first: downloading, browsing local games, folder sync and Game care. Each glass control has an icon, action name and short explanation. It uses two columns on wide screens and one on narrow screens or with larger text; emulator shortcuts and hardware details follow. Hardware specifications never displace the primary tasks.
+
 The top display carries a spacious library/task workspace. The lower display carries the conversation, contextual actions and a reachable composer. The browser preview presents them side by side on desktop and vertically on smaller screens. Native layouts must respect actual display bounds, insets and controller focus.
 
 Use one small star motif, gentle surfaces and quiet motion. No game artwork or branding is bundled. Clear progress and honest uncertainty outrank decoration. Keyboard focus, reduced-motion settings, readable text and mobile layouts are part of the baseline.

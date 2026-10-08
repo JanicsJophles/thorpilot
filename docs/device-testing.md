@@ -155,3 +155,7 @@ Validation completed: 31 companion tests, Android unit tests, debug/test/release
 The workspace illustration and introduction now leave room for the device controls, and emulator handoff uses a compact row. The installed APK was compared byte-for-byte with the previous local artifact before changing it: the earlier layout was current, not a stale installation. My Thor now identifies build type and source revision.
 
 Validation: Android unit tests, debug/test APK builds, lint and the physical-device runner pass. The updated workspace was inspected on the top display of the Thor. Forty companion tests cover the metadata bridge and read-only duplicate audit; website tests and generated link checks pass. This pass does not validate a full redesign, all font sizes, or every orientation.
+
+## My Thor task layout — 2026-10-08
+
+My Thor now starts with four glass task controls instead of large display specification cards. Local Android unit tests, debug/test APK builds, lint and physical-device instrumentation pass. A touch walkthrough opened Download to Thor, On this device, Library sync and Game care; each reached its existing panel. The lower-screen My Thor shortcut opened the new top-screen layout. The layout and companion were inspected on the Thor. No transfers or emulator settings were changed during this walkthrough. The one-column larger-text fallback is implemented but has not yet had a full accessibility walkthrough.
