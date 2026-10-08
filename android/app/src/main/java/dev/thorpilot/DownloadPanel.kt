@@ -199,12 +199,12 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
                 }
             }
             label(card, when {
-                preview.metadata?.deviceReviewed == true -> "Your saved metadata choice"
-                preview.metadata?.matchStatus == "matched" -> "Matched by file hash"
-                preview.metadata?.matchStatus == "needs_review" -> "Possible match · review artwork and title"
+                entry.metadata?.deviceReviewed == true -> "Your saved metadata choice"
+                entry.metadata?.matchStatus == "matched" -> "Matched by file hash"
+                entry.metadata?.matchStatus == "needs_review" -> "Possible match · review artwork and title"
                 else -> "Metadata not matched yet"
             }, 12f)
-            if (queued == null) button(card, "Review title & artwork") { reviewIdentity(entry) }
+            button(card, "Review title & artwork") { reviewIdentity(entry) }
             val needsReview = entry.metadata?.let { it.matchStatus == "needs_review" && !it.deviceReviewed } == true
             val title = if (queued == null && needsReview) "Review before download"
                 else if (queued == null) "Download to ${if (internal) "internal storage" else "SD card"}"
