@@ -46,8 +46,32 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private var active = false
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B) {
+            if (event.action == android.view.KeyEvent.ACTION_UP && !event.isCanceled) onBackPressed()
+            return true
+        }
         PilotFeedback.key(currentFocus, event)
         return super.dispatchKeyEvent(event)
+    }
+
+    @Deprecated("Uses Android back dispatch for the native view shell")
+    override fun onBackPressed() {
+        if (page == "home") { super.onBackPressed(); return }
+        val parent = when (page) {
+            "snapshots", "eden-inspector" -> "care"
+            "downloads", "device-library", "library-sync", "setup" -> "device"
+            else -> "home"
+        }
+        val previous = page
+        go(parent)
+        fun find(view: View): View? {
+            if (view.tag == previous && view.isFocusable) return view
+            if (view is android.view.ViewGroup) {
+                for (index in 0 until view.childCount) find(view.getChildAt(index))?.let { return it }
+            }
+            return null
+        }
+        find(body)?.requestFocus()
     }
 
     override fun onCreate(state: Bundle?) {
@@ -406,7 +430,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         homeActions().chunked(columns).forEach { actions ->
             val row = horizontal(this)
             actions.forEachIndexed { index, (title, detail, icon, destination) ->
-                row.addView(PilotActionRow(this, title, detail, icon) { go(destination) },
+                row.addView(PilotActionRow(this, title, detail, icon) { go(destination) }.apply { tag = destination },
                     LinearLayout.LayoutParams(0, -1, 1f).apply {
                         marginEnd = if (index < actions.lastIndex) dp(this@MainActivity, 10) else 0
                     })
@@ -427,6 +451,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private fun requestsPage() { body.addView(requests.createView(this)) }
     private fun deviceAction(title: String, detail: String, icon: String, destination: String): Button =
         button(this, title) { go(destination) }.apply {
+            tag = destination
             val copy = "$title\n$detail"
             text = android.text.SpannableString(copy).apply {
                 setSpan(android.text.style.RelativeSizeSpan(.82f), title.length + 1, length, 0)
@@ -552,6 +577,21 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         body.addView(box)
     }
     private fun settingsPage() {
+        body.addView(label(this, "Feel and feedback", 22f, true))
+        fun preference(title: String, enabled: Boolean, update: (Boolean) -> Unit) {
+            body.addView(Switch(this).apply {
+                text = title; textSize = 15f; setTextColor(ink)
+                isChecked = enabled
+                minHeight = dp(context, 48)
+                setPadding(dp(context, 14), dp(context, 8), dp(context, 14), dp(context, 8))
+                background = PilotSurface(dp(context, 16).toFloat())
+                setOnCheckedChangeListener { _, checked -> update(checked) }
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(this@MainActivity, 8) }
+            })
+        }
+        preference("Interface animations", PilotPreferences.motion(this)) { PilotPreferences.setMotion(this, it) }
+        preference("Navigation haptics", PilotPreferences.haptics(this)) { PilotPreferences.setHaptics(this, it) }
+        body.addView(label(this, "System vibration and reduced-motion settings still apply. A selects; B returns to the parent screen.", 12f).apply { setTextColor(muted) })
         body.addView(label(this, "Your library, your server", 24f, true))
         body.addView(label(this, "Connect a ROMarr instance with the optional game-requests adapter. Your API key stays on this device."))
         val address = EditText(this).apply {
@@ -599,7 +639,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         val panel = if (companion?.display?.displayId == target.displayId && companion?.isShowing == true) companion!! else {
             companion?.dismiss()
             object : Presentation(this, target) {
+                @Deprecated("Routes companion back to the workspace")
+                override fun onBackPressed() { this@MainActivity.onBackPressed() }
                 override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+                    if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B) {
+                        if (event.action == android.view.KeyEvent.ACTION_UP && !event.isCanceled) this@MainActivity.onBackPressed()
+                        return true
+                    }
                     PilotFeedback.key(currentFocus, event)
                     return super.dispatchKeyEvent(event)
                 }

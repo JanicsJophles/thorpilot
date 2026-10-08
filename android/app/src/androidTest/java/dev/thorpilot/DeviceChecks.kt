@@ -88,6 +88,30 @@ class DeviceChecks : Instrumentation() {
                 views(activity.window.decorView).filterIsInstance<PilotActionRow>()
                     .first { it.contentDescription.startsWith("Game care.") }.performClick()
                 check(contains("Configuration snapshots")) { "Home game care row lost its tools" }
+                click("Inspect Eden settings")
+                fun backButton() {
+                    activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BUTTON_B))
+                    activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_BUTTON_B))
+                }
+                backButton()
+                check(contains("Configuration snapshots")) { "B skipped the parent Game care screen" }
+                backButton()
+                check(views(activity.window.decorView).filterIsInstance<PilotActionRow>().isNotEmpty()) { "B did not return to Home" }
+                check(!activity.isFinishing) { "B exited instead of navigating back" }
+                val motionBefore = PilotPreferences.motion(activity)
+                val hapticsBefore = PilotPreferences.haptics(activity)
+                try {
+                    click("Settings")
+                    val motion = views(activity.window.decorView).filterIsInstance<android.widget.Switch>().first { it.text == "Interface animations" }
+                    val haptics = views(activity.window.decorView).filterIsInstance<android.widget.Switch>().first { it.text == "Navigation haptics" }
+                    motion.isChecked = false; haptics.isChecked = false
+                    check(!PilotPreferences.animate(activity) && !PilotPreferences.haptics(activity))
+                    click("Home"); click("Settings")
+                    check(!views(activity.window.decorView).filterIsInstance<android.widget.Switch>().first { it.text == "Interface animations" }.isChecked)
+                } finally {
+                    PilotPreferences.setMotion(activity, motionBefore)
+                    PilotPreferences.setHaptics(activity, hapticsBefore)
+                }
                 click("Home")
                 } catch (failure: Throwable) { uiFailure = failure }
             }

@@ -26,6 +26,10 @@ class SummonActivity : Activity() {
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B) {
+            if (event.action == android.view.KeyEvent.ACTION_UP && !event.isCanceled) finish()
+            return true
+        }
         PilotFeedback.key(currentFocus, event)
         return super.dispatchKeyEvent(event)
     }

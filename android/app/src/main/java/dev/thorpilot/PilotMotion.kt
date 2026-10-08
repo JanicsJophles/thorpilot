@@ -16,7 +16,7 @@ object PilotMotion {
 
     fun enter(view: View) {
         reset(view)
-        if (!view.isAttachedToWindow || !ValueAnimator.areAnimatorsEnabled()) return
+        if (!view.isAttachedToWindow || !PilotPreferences.animate(view.context)) return
 
         val detach = object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) = Unit

@@ -65,7 +65,7 @@ object PilotFocus {
             view.foreground = decoration
             if (feedback) {
                 PilotFeedback.focus(view)
-                if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
+                if (PilotPreferences.animate(view.context)) {
                     animator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
                         duration = 180
                         interpolator = android.view.animation.DecelerateInterpolator()
