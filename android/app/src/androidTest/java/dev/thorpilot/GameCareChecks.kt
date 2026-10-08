@@ -28,6 +28,14 @@ object GameCareChecks {
             fun field(title: String) = views(root).filterIsInstance<EditText>()
                 .single { it.contentDescription.toString() == title }
             fun has(text: String) = views(root).filterIsInstance<TextView>().any { it.text.contains(text) }
+            root = panel.createView(context, compact = true)
+            check(!views(root).filterIsInstance<EditText>().any { it.contentDescription == "Game revision (if known)" })
+            click("New Eden note")
+            check(panel.saveState().getString("emulatorId") == "eden")
+            click("Build and driver details")
+            check(field("Game revision (if known)").text.isEmpty())
+            panel = GameCarePanel(context, store)
+            root = panel.createView(context)
             field("Game").setText("Synthetic UI game")
             field("Scene to repeat").setText("Same room")
             field("Before: what you observed").setText("Visible flicker")

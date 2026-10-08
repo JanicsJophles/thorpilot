@@ -18,6 +18,7 @@ class DeviceChecks : Instrumentation() {
             ConfigSnapshotChecks.run(targetContext)
             fixtureUri?.let { ConfigDocumentChecks.run(targetContext, it) }
             GameCareChecks.run(targetContext)
+            GameCareDraftChecks.run(targetContext)
             GameSessionChecks.run(targetContext)
             RequestChecks.run()
             RequestHistoryChecks.run(targetContext)
@@ -82,6 +83,8 @@ class DeviceChecks : Instrumentation() {
                     fun button(text: String) = descendants(quick.window.decorView)
                         .filterIsInstance<Button>().first { it.text.toString() == text }
                     check(quick.currentFocus !is android.widget.EditText) { "Summon stole editor focus" }
+                    descendants(quick.window.decorView).filterIsInstance<Button>()
+                        .firstOrNull { it.text.toString() == "Compact" }?.performClick()
                     val compactHeight = quick.window.attributes.height
                     button("Expand").performClick()
                     check(quick.window.attributes.height >= compactHeight)
