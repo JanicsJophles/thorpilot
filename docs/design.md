@@ -6,7 +6,7 @@ The native app now adopts the Claude Design reference's black/amber tokens: AMOL
 
 Bundled Bricolage Grotesque headings and Instrument Sans body text work offline; JetBrains Mono is available for technical labels. Font sources and redistribution licenses are in [licenses/fonts](licenses/fonts/README.md). Explicit typography roles survive hierarchy refreshes.
 
-Controller focus uses a static inset amber rim and pale inner highlight, drawn above the control without layout changes or blur. Moving focus restores the old foreground. Selected navigation has a separate thin amber border. Device checks verify focus follows navigation and does not leave stale decorations.
+Controller focus uses a reflective inset amber rim with a 180ms reveal, drawn above the control without layout changes or blur. Confirm presses have a 160ms inward pulse. Navigation ticks and confirm haptics use Android feedback APIs and honor system settings; held-key repeats do not trigger repeated confirm pulses. Disabling system animations makes focus immediate. Moving focus restores the old foreground. Selected navigation has a separate thin amber border. Device checks verify focus follows navigation and does not leave stale decorations.
 
 Home and the companion display use one shared action-row component and one destination list. Home keeps the emulator handoff above those actions. The former workspace landing page and separate shortcut-tile builder have been deleted. Keep 48dp touch targets. My Thor shows the build type and source revision; `dirty` means local tracked changes and `unknown` means revision information was unavailable.
 
@@ -22,6 +22,8 @@ The next design pass explores a compact **summon → ask/act → dismiss** inter
 
 ## Native UI ownership
 
-`PilotSurface` is the shared rounded control surface for the app, panels and summon activity. `PilotActionRow` is the shared home/companion navigation component. The previous `PilotGlass`, `PilotBubble`, `PilotWallpaper` and `PilotJourney` implementations are removed rather than retained as a fallback theme. `PilotIcon` contains only the currently used vector action icons.
+`PilotSurface` is the shared reflective glass control surface for the app, panels and summon activity. `PilotActionRow` is the shared home/companion navigation component. The previous `PilotGlass`, `PilotBubble`, `PilotWallpaper` and `PilotJourney` implementations are removed rather than retained as a fallback theme. `PilotIcon` contains only the currently used vector action icons.
 
 Functional panels remain connected to their existing stores, clients and transfer services. Changing the design must not reset preferences, save files, transfer history or connection credentials. Home row navigation is exercised by the on-device checks alongside tab stability and focus restoration.
+
+Cocoon is a visual/interaction reference, not copied source. Its public repository does not include the launcher UI source, and its author explains the closed-source status at https://cocoon-shell.com/news/post-2-0/ . The glass shading, focus transition and controller feedback here are original native implementations.
