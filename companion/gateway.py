@@ -38,14 +38,115 @@ def safe_name(name):
             and not any(ord(c) < 32 or 127 <= ord(c) <= 159 or c in '/\\:*?"<>|' for c in name))
 
 
+METADATA_MAX_BYTES = 4 * 1024 * 1024
+METADATA_MAX_ITEMS = 10000
+PROVIDERS = {"igdb", "screenscraper", "launchbox"}
+
+
+def metadata_text(value, limit):
+    if not isinstance(value, str) or not value.strip() or len(value) > limit:
+        raise ValueError("Invalid metadata text")
+    if any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in value):
+        raise ValueError("Invalid metadata text")
+    return value.strip()
+
+
+def metadata_candidate(raw):
+    if not isinstance(raw, dict):
+        raise ValueError("Invalid candidate")
+    result = {"canonical_title": metadata_text(raw.get("canonical_title"), 256)}
+    ids = raw.get("provider_ids", {})
+    if not isinstance(ids, dict):
+        raise ValueError("Invalid provider IDs")
+    result["provider_ids"] = {}
+    for provider in PROVIDERS & ids.keys():
+        value = ids[provider]
+        if type(value) is not int or not 0 < value <= 2147483647:
+            raise ValueError("Invalid provider ID")
+        result["provider_ids"][provider] = value
+    if "cover_url" in raw:
+        cover = metadata_text(raw["cover_url"], 2048)
+        url = urlsplit(cover)
+        if (url.scheme != "https" or url.netloc != "images.igdb.com"
+                or not url.path.startswith("/igdb/image/upload/")
+                or url.query or url.fragment or any(c.isspace() for c in cover)):
+            raise ValueError("Invalid cover URL")
+        result["cover_url"] = cover
+    return result
+
+
+def read_metadata_index(path):
+    """Optional, bounded metadata. Invalid input never prevents file transfers."""
+    if path is None:
+        return {}
+    try:
+        with open(path, "rb") as stream:
+            payload = stream.read(METADATA_MAX_BYTES + 1)
+        if len(payload) > METADATA_MAX_BYTES:
+            return {}
+        document = json.loads(payload)
+        if (not isinstance(document, dict) or type(document.get("version")) is not int
+                or document["version"] != 1 or not isinstance(document.get("items"), list)
+                or len(document["items"]) > METADATA_MAX_ITEMS):
+            return {}
+        index, duplicates = {}, set()
+        for raw in document["items"]:
+            try:
+                if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] != 1:
+                    continue
+                platform, digest = raw.get("platform"), raw.get("sha256")
+                if not isinstance(platform, str) or platform not in FORMATS:
+                    continue
+                if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+                    continue
+                key = (platform, digest)
+                if key in index or key in duplicates:
+                    index.pop(key, None)
+                    duplicates.add(key)
+                    continue
+                record = metadata_candidate(raw)
+                status = raw.get("match_status")
+                if status not in ("matched", "needs_review", "unmatched"):
+                    continue
+                if status == "matched" and not record["provider_ids"]:
+                    continue
+                candidates = raw.get("candidates", [])
+                if not isinstance(candidates, list) or len(candidates) > 8:
+                    continue
+                record.update(version=1, platform=platform, sha256=digest,
+                              match_status=status, candidates=[metadata_candidate(c) for c in candidates])
+                for field in ("region", "revision"):
+                    if field in raw:
+                        record[field] = metadata_text(raw[field], 64)
+                index[key] = record
+            except (ValueError, TypeError):
+                continue
+        return index
+    except (OSError, ValueError, TypeError, RecursionError):
+        return {}
+
+
+def fallback_metadata(platform, digest, stem):
+    title = stem
+    if platform == "n3ds" and re.match(r"^00040000[0-9a-fA-F]{8} +\S", title):
+        title = re.sub(r"^00040000[0-9a-fA-F]{8} +", "", title)
+        title = re.sub(r"\.(?:piratelegit|legit)$", "", title, flags=re.I)
+        # Known packaging tags only; never infer a provider identity from a name.
+        title = re.sub(r"(?: +\((?:CTR-[^()]+|v[0-9.]+|W|USA|Europe|Japan|World)\))+$", "", title)
+    return {"version": 1, "platform": platform, "sha256": digest,
+            "canonical_title": title[:256], "match_status": "unmatched",
+            "provider_ids": {}, "candidates": []}
+
+
 class Library:
-    def __init__(self, root):
+    def __init__(self, root, metadata_file=None):
         self.root = Path(root).resolve(strict=True)
         if not self.root.is_dir():
             raise ValueError("Library root must be a directory")
         self.lock = threading.RLock()
         self.cache = {}
         self.entries = {}
+        self.metadata_file = metadata_file
 
     def open_file(self, relative):
         """Traverse beneath an open root; never follow symlinks, even after scan."""
@@ -70,6 +171,7 @@ class Library:
     def scan(self):
         with self.lock:
             entries, active_cache = {}, {}
+            metadata = read_metadata_index(self.metadata_file)
             try:
                 directories = sorted(self.root.iterdir())
             except OSError:
@@ -105,6 +207,7 @@ class Library:
                             identity = hashlib.sha256((relative + "\0" + digest).encode()).hexdigest()
                             item = dict(id=identity, title=path.stem, platform=platform,
                                         file_name=path.name, size_bytes=before[2], sha256=digest)
+                            item["metadata"] = metadata.get((platform, digest), fallback_metadata(platform, digest, path.stem))
                             entries[identity] = (item, relative, before)
                     except OSError:
                         continue
@@ -234,11 +337,12 @@ def main():
     parser.add_argument("--root", default=os.environ.get("THORPILOT_LIBRARY_ROOT"), required=not os.environ.get("THORPILOT_LIBRARY_ROOT"))
     parser.add_argument("--bind", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8792)
+    parser.add_argument("--metadata-file", help="Optional version 1 metadata index; reloaded on catalog reads")
     args = parser.parse_args()
     token = os.environ.get("THORPILOT_DOWNLOAD_TOKEN", "")
     if len(token) < 32 or not token.isascii() or any(c.isspace() for c in token):
         parser.error("THORPILOT_DOWNLOAD_TOKEN must contain at least 32 non-whitespace ASCII characters")
-    library = Library(args.root)
+    library = Library(args.root, args.metadata_file)
     library.scan()  # Warm manifest before accepting clients.
     server = ThreadingHTTPServer((args.bind, args.port), make_handler(library, token))
     try:

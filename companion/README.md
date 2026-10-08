@@ -90,3 +90,61 @@ python3 -m unittest discover -s companion -p 'test_*.py' -v
 
 Tests exercise authenticated HTTP, actual byte checksums, range resume, stale
 identity handling, forbidden formats, path traversal and symlink substitution.
+
+## Shared library metadata (version 1)
+
+Add `--metadata-file /srv/library/metadata.json` to load an optional index. The
+index is reloaded on catalog reads, so an exporter can replace it atomically
+without restarting the gateway. No provider credentials belong in this file.
+The gateway does not call artwork providers or change ROM files.
+
+Each download now includes a `metadata` object. The index uses the same objects:
+
+```json
+{
+  "version": 1,
+  "items": [{
+    "version": 1,
+    "platform": "n3ds",
+    "sha256": "<64 lowercase hex characters matching the actual file>",
+    "canonical_title": "Example",
+    "match_status": "matched",
+    "provider_ids": {"igdb": 123},
+    "region": "USA",
+    "revision": "1",
+    "cover_url": "https://images.igdb.com/igdb/image/upload/t_cover_big/example.jpg",
+    "candidates": []
+  }]
+}
+```
+
+A record applies only when **both canonical platform and actual SHA-256 match**.
+`match_status` is `matched`, `needs_review`, or `unmatched`. `matched` requires at
+least one provider ID. Producers must establish an actual match rather than
+labeling filename guesses as verified. The gateway validates the contract, not
+the producer's game identification. Filename-only guesses belong in
+`needs_review` with candidate choices.
+
+Supported provider keys are `igdb`, `screenscraper`, and `launchbox`; values are
+positive integers up to 2,147,483,647. Unknown fields and provider keys are omitted.
+`canonical_title` is required and limited to 256 characters; optional `region`
+and `revision` are limited to 64. These strings reject control characters.
+Optional `cover_url` accepts only HTTPS on the exact `images.igdb.com` host and
+`/igdb/image/upload/` path prefix, without credentials, ports, query or fragment,
+up to 2,048 characters. Clients must apply the same restrictions when fetching
+artwork, including redirects.
+
+`candidates` contains up to eight objects with `canonical_title`, `provider_ids`,
+and optional `cover_url`, under the same validation rules. Missing IDs/candidates
+default to empty objects/lists. Invalid records are ignored; duplicate bindings
+are treated as ambiguous and omitted. Missing, malformed, or oversized index
+files fall back safely to unmatched metadata. Limits: 4 MiB and 10,000 records.
+
+Without a valid matching record, the gateway returns version, platform, SHA-256,
+a filename-derived title, `unmatched`, and empty IDs/candidates. Known base 3DS
+application ID prefixes and packaging tags are removed from this display title;
+this cleanup never claims a provider match. The top-level original `title`,
+`file_name`, file ID, size, and checksum remain unchanged. Metadata updates cannot
+rename a queued file, change download identity, or overwrite saves.
+
+The optional [RomM exporter](../docs/metadata-bridge.md) builds this index from an existing library using exact file hashes and produces review candidates for weaker matches. Unknown optional fields should be omitted rather than set to null. Thorpilot currently accepts catalogs up to 5,000 entries and 8 MiB; filter larger libraries before serving them.

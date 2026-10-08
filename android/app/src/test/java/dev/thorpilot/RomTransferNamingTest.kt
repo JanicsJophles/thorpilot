@@ -64,6 +64,16 @@ class RomTransferNamingTest {
         assertTrue(RomSyncPlan.plan(listOf(source, source), emptyList()).all { it.kind == RomSyncPlan.Kind.CONFLICT })
     }
 
+    @Test fun confirmedCanonicalTitlePreservesReleaseTagsAndApplicationId() {
+        assertEquals("Pokémon - Mystery (CTR-P-BPXE) (v0.0.0) (W) (0004000000174600).cia",
+            RomTransferNaming.prepareWithTitle("n3ds", original, "Pokémon : Mystery"))
+        assertEquals("Disc 1.iso", RomTransferNaming.prepareWithTitle("psx", "Disc 1.iso", "New title"))
+        assertEquals("0004000e00174600 Update.cia", RomTransferNaming.prepareWithTitle("n3ds", "0004000e00174600 Update.cia", "New title"))
+        assertEquals(prepared, RomTransferNaming.prepareWithTitle("n3ds", original, "\n"))
+        assertEquals(prepared, RomTransferNaming.prepareWithTitle("n3ds", original, "é".repeat(240)))
+        assertFalse(RomTransferNaming.prepareWithTitle("n3ds", original, "A\\B/C").contains('\\'))
+    }
+
     @Test fun sourceValidationCannotBeBypassedByCleanup() {
         assertThrows(IllegalArgumentException::class.java) { entry("0004000000174600 ../Game.cia").preparedForTransfer() }
         assertThrows(IllegalArgumentException::class.java) { entry("0004000000174600 Game\u0000.cia").preparedForTransfer() }

@@ -6,7 +6,7 @@ import java.net.URL
 import java.net.URLEncoder
 import javax.net.ssl.HttpsURLConnection
 
-data class ThorDownloadEntry(val id: String, val title: String, val platform: String, val fileName: String, val sizeBytes: Long, val sha256: String, val originalFileName: String? = null) {
+data class ThorDownloadEntry(val id: String, val title: String, val platform: String, val fileName: String, val sizeBytes: Long, val sha256: String, val originalFileName: String? = null, val metadata: GameIdentityMetadata? = null) {
     fun destination(): String {
         require(id.isNotBlank() && id.length <= 512 && sizeBytes > 0) { "Invalid download manifest." }
         require('/' !in fileName && '\\' !in fileName) { "Invalid download filename." }
@@ -21,8 +21,29 @@ data class ThorDownloadEntry(val id: String, val title: String, val platform: St
         val prepared = RomTransferNaming.prepare(platform, fileName)
         return if (prepared == fileName) this else copy(fileName = prepared, originalFileName = fileName).also { it.destination() }
     }
-    fun json() = JSONObject().put("id",id).put("title",title).put("platform",platform).put("file_name",fileName).put("size_bytes",sizeBytes).put("sha256",sha256).put("original_file_name",originalFileName)
-    companion object { fun parse(j: JSONObject) = ThorDownloadEntry(j.getString("id"), j.getString("title"), j.getString("platform"), j.getString("file_name"), j.getLong("size_bytes"), j.getString("sha256"), j.optString("original_file_name").takeIf { it.isNotEmpty() }).also { it.destination() } }
+    /** Metadata can improve a new offer; restoring a queued job never calls this. */
+    fun withIdentity(identity: GameIdentityMetadata?): ThorDownloadEntry {
+        if (identity == null) return this
+        val verified = GameIdentityMetadata.parse(identity.json(), platform, sha256, trustDeviceReview = true) ?: return this
+        val source = originalFileName ?: fileName
+        val trustedTitle = verified.matchStatus == "matched" || verified.deviceReviewed
+        val prepared = if (trustedTitle) RomTransferNaming.prepareWithTitle(platform, source, verified.canonicalTitle) else fileName
+        return copy(title = verified.canonicalTitle, metadata = verified, fileName = prepared,
+            originalFileName = originalFileName ?: source.takeIf { it != prepared }).also { it.destination() }
+    }
+    fun json() = JSONObject().put("id",id).put("title",title).put("platform",platform).put("file_name",fileName).put("size_bytes",sizeBytes).put("sha256",sha256).put("original_file_name",originalFileName).put("metadata",metadata?.json())
+    companion object {
+        fun parse(j: JSONObject, trustDeviceReview: Boolean = true): ThorDownloadEntry {
+            val entry = ThorDownloadEntry(j.getString("id"), j.getString("title"), j.getString("platform"),
+                j.getString("file_name"), j.getLong("size_bytes"), j.getString("sha256"),
+                metadata = GameIdentityMetadata.parse(j.optJSONObject("metadata"), j.getString("platform"), j.getString("sha256"), trustDeviceReview))
+            entry.destination()
+            val original = (j.opt("original_file_name") as? String)?.takeIf { name ->
+                name.isNotBlank() && name.length <= 512 && runCatching { entry.copy(fileName = name).destination() }.isSuccess
+            }
+            return entry.copy(originalFileName = original)
+        }
+    }
 }
 
 class ThorDownloadClient(private val connection: ConnectionSnapshot) {
@@ -45,14 +66,14 @@ class ThorDownloadClient(private val connection: ConnectionSnapshot) {
                 val buffer = ByteArray(8192)
                 while (true) {
                     val n = input.read(buffer); if (n < 0) break
-                    require(output.size() + n <= 2 * 1024 * 1024) { "Download manifest is too large." }
+                    require(output.size() + n <= 8 * 1024 * 1024) { "Download manifest is too large." }
                     output.write(buffer, 0, n)
                 }
                 output.toString("UTF-8")
             }
             val rows = if (text.trimStart().startsWith("[")) JSONArray(text) else JSONObject(text).getJSONArray("items")
             require(rows.length() <= 5000) { "Download library is too large." }
-            return (0 until rows.length()).map { ThorDownloadEntry.parse(rows.getJSONObject(it)).preparedForTransfer() }
+            return (0 until rows.length()).map { ThorDownloadEntry.parse(rows.getJSONObject(it), trustDeviceReview = false).preparedForTransfer() }
         } finally { conn.disconnect() }
     }
 }
