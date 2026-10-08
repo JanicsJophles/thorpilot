@@ -72,6 +72,27 @@ class DeviceChecks : Instrumentation() {
                 } catch (failure: Throwable) { uiFailure = failure }
             }
             uiFailure?.let { throw it }
+            val sessionBefore = GameSession(targetContext).let { it.yielded to it.lastPackage }
+            val quick = startActivitySync(ThorpilotTileService.launchIntent(targetContext))
+            waitForIdleSync()
+            runOnMainSync {
+                try {
+                    fun descendants(v: View): List<View> = listOf(v) + if (v is ViewGroup)
+                        (0 until v.childCount).flatMap { descendants(v.getChildAt(it)) } else emptyList()
+                    fun button(text: String) = descendants(quick.window.decorView)
+                        .filterIsInstance<Button>().first { it.text.toString() == text }
+                    check(quick.currentFocus !is android.widget.EditText) { "Summon stole editor focus" }
+                    val compactHeight = quick.window.attributes.height
+                    button("Expand").performClick()
+                    check(quick.window.attributes.height >= compactHeight)
+                    button("Compact").performClick()
+                    check(quick.window.attributes.height == compactHeight)
+                    button("Dismiss").performClick()
+                    check(quick.isFinishing)
+                    check(GameSession(targetContext).let { it.yielded to it.lastPackage } == sessionBefore)
+                } catch (failure: Throwable) { uiFailure = failure }
+            }
+            uiFailure?.let { throw it }
             finish(Activity.RESULT_OK, Bundle().apply { putString("stream", "PASS: configuration snapshot recovery and game care store/panel and session handoff state, chat parsing/history, bounded request transport, redirects, error handling, HTTPS validation, Keystore persistence/isolation, encrypted storage, clear, device inventory, native navigation, and widget registration/layout/routing\n") })
         } catch (e: Throwable) {
             finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAIL: ${e.javaClass.simpleName}: ${e.message} at ${e.stackTrace.firstOrNull()}\n") })

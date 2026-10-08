@@ -17,6 +17,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".SummonActivity" android:exported="false"
+            android:theme="@style/CopilotTheme" android:taskAffinity="dev.thorpilot.copilot"
+            android:excludeFromRecents="true" android:launchMode="singleTop" />
         <service android:name=".ThorDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name=".ThorpilotTileService" android:exported="true"
             android:label="Thorpilot" android:icon="@drawable/ic_thorpilot_tile"
