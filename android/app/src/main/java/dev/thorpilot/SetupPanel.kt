@@ -263,7 +263,7 @@ class SetupPanel(
             }
             if (focusTag != null) (root.findViewWithTag<View>(focusTag)
                 ?: root.findViewWithTag<View>("next") ?: root.findViewWithTag<View>("retry") ?: root.findViewWithTag<View>("finish"))?.requestFocus()
-            if (transition && ValueAnimator.areAnimatorsEnabled()) {
+            if (transition && PilotPreferences.animate(app)) {
                 root.alpha = .7f
                 root.animate().alpha(1f).setDuration(140).start()
             }

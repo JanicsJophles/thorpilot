@@ -27,3 +27,9 @@ The next design pass explores a compact **summon → ask/act → dismiss** inter
 Functional panels remain connected to their existing stores, clients and transfer services. Changing the design must not reset preferences, save files, transfer history or connection credentials. Home row navigation is exercised by the on-device checks alongside tab stability and focus restoration.
 
 Cocoon is a visual/interaction reference, not copied source. Its public repository does not include the launcher UI source, and its author explains the closed-source status at https://cocoon-shell.com/news/post-2-0/ . The glass shading, focus transition and controller feedback here are original native implementations.
+
+## Controller navigation and preferences
+
+B/Back returns nested tools to their parent (Eden inspector and snapshots → Game care; storage tools → My Thor), then returns sections to Home. On Home, Back retains Android’s normal exit behavior. The lower presentation routes back through the same navigation; B dismisses the compact copilot. Returning to Home/My Thor restores focus to the action that opened the child when available.
+
+Settings includes persisted Interface animations and Navigation haptics switches, shared across both displays and the compact copilot. System-disabled motion/haptics remain authoritative. Disabling motion affects page transitions, focus reveal, press pulses and onboarding transitions; the visible focus outline remains.
