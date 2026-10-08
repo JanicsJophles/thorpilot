@@ -45,7 +45,9 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     fun onConnectionChanged() { if (syncConnection()) refresh() }
     fun close() { closed = true; worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
-    private fun surface(c: Context, color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0x304faaa7) }
+    private fun surface(c: Context, color: Int): android.graphics.drawable.Drawable =
+        if (quick) PilotBubble(dp(c, 24).toFloat(), color == Color.rgb(29, 49, 73))
+        else GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0x304faaa7) }
     private fun text(c: Context, value: String, size: Float = 15f, bold: Boolean = false) = TextView(c).apply {
         text = value; textSize = size; setTextColor(ink)
         if (bold) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)

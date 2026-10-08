@@ -70,3 +70,12 @@ Native page navigation uses a short opacity/translation transition on content on
 For the proposed summon surface, target 140–220ms user-triggered motion, with immediate/brief opacity in reduced motion. Avoid full-screen blur, animated backgrounds, constant pulsing and particle effects during gameplay. Performance numbers are design budgets, not measured emulator guarantees.
 
 Before calling the summon flow shipped, test repeated summon/dismiss in Azahar, Eden and melonDualDS; audio/render continuity; physical controller focus and recovery; IME placement; both occupied screens; lock/unlock; permission rejection/revocation; display removal; process recreation; and reduced motion. Record any emulator that pauses or changes its display behavior. Hardware evidence outranks the visual prototype.
+
+
+## Local Game care mode
+
+The compact copilot's mode picker switches between game discovery and Game care. Game care expands the window and opens the existing manual experiment journal without needing a server. Start an Azahar or Eden note, record a game, symptom and repeatable scene, then reveal build and driver details when needed. Trial records the original value and one proposed manual change; Result records what actually happened.
+
+Unfinished care work uses a separate bounded local draft, restored after dismissal or process restart. Saved notes continue to use the existing Game care journal. Mode selection persists; switching modes preserves the draft. Starting a replacement note asks before discarding a populated draft. Notes are not sent to the discovery model. This is explicit user-provided context, not live game detection or automatic optimization.
+
+The compact surfaces use locally drawn translucent glass with rounded pill controls, subtle reflections and rims. No sampled blur, continuous visual effect or background rendering loop is used.

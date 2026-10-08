@@ -118,3 +118,10 @@ Build validation: debug unit tests, both APK assemblies, Android lint, and the c
 Tested the compact dialog through the actual Quick Settings tile over Cocoon on the Android 13 Thor. No keyboard appeared at entry. Typed a game-discovery draft, hid the keyboard, dismissed, reopened the tile, and verified the exact draft returned. Sent that draft through the configured server and received catalog-backed game cards plus the existing warning for unverified suggestions. Expanded and scrolled the reply with Workspace/Dismiss remaining available. This tested discovery only; no download was started.
 
 The compact activity has separate connection-bound chat storage and does not create a secondary Presentation or modify GameSession. Manifest contract checks verify the private activity, task affinity and Recents exclusion; the full device runner, unit tests, APK assemblies and lint pass. Emulator rendering/audio continuity, physical gamepad focus, Android 14+ tile launching and narrow-phone layout remain unverified. The public preview APK has not been replaced.
+
+
+## Glass surfaces and compact Game care — 2026-10-07
+
+On the Android 13 Thor, opened the updated compact copilot over Cocoon and selected Game care from the mode picker. Verified the expanded journal and glass treatment on the device. Compact layout removes duplicate headings and hides optional build/driver fields behind a disclosure.
+
+Added isolated instrumentation coverage for selecting an Eden draft, disclosure controls, bounded draft roundtrip across store instances, malformed/oversized data, independent namespaces, and preservation of existing journal entries. The complete device runner and local unit/build/lint checks pass. No live game was tuned in this pass; no game files or emulator settings were modified.
