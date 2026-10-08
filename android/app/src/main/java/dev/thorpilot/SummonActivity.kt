@@ -44,7 +44,7 @@ class SummonActivity : Activity() {
         }
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(this).apply {
-            text = "✦ Thorpilot"; textSize = 18f; setTextColor(0xff6cf7d0.toInt())
+            text = "✦ Thorpilot"; textSize = 18f; setTextColor(0xffffb547.toInt())
         }, LinearLayout.LayoutParams(0, -2, 1f))
         fun button(title: String, action: () -> Unit) = Button(this).apply {
             text = title; textSize = 13f; isAllCaps = false
@@ -98,7 +98,9 @@ class SummonActivity : Activity() {
         content = ScrollView(this).apply { isFillViewport = true }
         root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
         showMode()
+        PilotTypography.applyTo(root)
         setContentView(root)
+        PilotFocus.install(root)
         root.requestFocus() // Opening the tile must not summon the keyboard.
         resize()
     }
@@ -106,6 +108,7 @@ class SummonActivity : Activity() {
     private fun showMode() {
         content.removeAllViews()
         content.addView(if (mode == "care") care.createView(this, compact = true) else chat.createView(this))
+        PilotTypography.applyTo(content)
         content.scrollTo(0, 0)
     }
 

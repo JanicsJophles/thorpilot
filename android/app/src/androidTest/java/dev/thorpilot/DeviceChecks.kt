@@ -63,6 +63,13 @@ class DeviceChecks : Instrumentation() {
                 }
                 fun contains(text: String) = views(activity.window.decorView).filterIsInstance<TextView>().any { it.text.contains(text) }
                 val stableTab = views(activity.window.decorView).filterIsInstance<Button>().first { it.text.toString() == "My Thor" }
+                val beforeFocus = stableTab.foreground
+                stableTab.requestFocusFromTouch()
+                check(stableTab.foreground is PilotFocusRing) { "Controller focus has no visible ring" }
+                val otherTab = views(activity.window.decorView).filterIsInstance<Button>().first { it.text.toString() == "Requests" }
+                otherTab.requestFocusFromTouch()
+                check(stableTab.foreground === beforeFocus) { "Focus left a stale decoration behind" }
+                check(otherTab.foreground is PilotFocusRing) { "Focus ring did not follow navigation" }
                 repeat(8) { click("Requests"); click("My Thor") }
                 check(views(activity.window.decorView).any { it === stableTab }) { "Navigation rebuilt the stable tab shell" }
                 click("My Thor")

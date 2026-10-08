@@ -65,7 +65,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
     }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun label(c: Context, value: String, size: Float = 14f, strong: Boolean = false) = TextView(c).apply {
-        text = value; textSize = size; setTextColor(if (strong) 0xfff2f6fc.toInt() else 0xffafc1d0.toInt())
+        text = value; textSize = size; setTextColor(if (strong) 0xfff4f2ec.toInt() else 0xffa9a69e.toInt())
         if (strong) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         setPadding(0, dp(c, 5), 0, dp(c, 8))
     }
@@ -93,7 +93,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
             steps.addView(Button(c).apply {
                 text = title; isAllCaps = false; textSize = 13f
                 contentDescription = "$title step ${index + 1} of 3"
-                isSelected = index == step; setTextColor(0xff6cf7d0.toInt())
+                isSelected = index == step; setTextColor(0xffffb547.toInt())
                 background = if (compact) PilotBubble(dp(c, 24).toFloat(), index == step) else PilotGlass(dp(c, 16).toFloat(), index == step)
                 setOnClickListener {
                     (c.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
@@ -110,13 +110,13 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         fun field(title: String, value: String, limit: Int, change: (String) -> Unit) {
             card.addView(label(c, title, 13f, true))
             card.addView(EditText(c).apply {
-                setText(value); textSize = 14f; setTextColor(0xfff2f6fc.toInt()); setHintTextColor(0xff8498ad.toInt())
+                setText(value); textSize = 14f; setTextColor(0xfff4f2ec.toInt()); setHintTextColor(0xff8e8b84.toInt())
                 contentDescription = title
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
                     (if (limit > 240) InputType.TYPE_TEXT_FLAG_MULTI_LINE else 0)
                 imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_ACTION_NEXT
                 minHeight = dp(c, 48); maxLines = 2; filters = arrayOf(InputFilter.LengthFilter(limit))
-                backgroundTintList = android.content.res.ColorStateList.valueOf(0xff61caba.toInt())
+                backgroundTintList = android.content.res.ColorStateList.valueOf(0xffffb547.toInt())
                 addTextChangedListener(object : TextWatcher {
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { change(s.toString()) }
@@ -138,7 +138,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         }
         fun button(parent: LinearLayout, title: String, click: () -> Unit) {
             parent.addView(Button(c).apply {
-                text = title; isAllCaps = false; textSize = 14f; setTextColor(0xff6cf7d0.toInt())
+                text = title; isAllCaps = false; textSize = 14f; setTextColor(0xffffb547.toInt())
                 background = if (compact) PilotBubble(dp(c, 24).toFloat()) else PilotGlass(dp(c, 18).toFloat()); setOnClickListener { click() }
             }, LinearLayout.LayoutParams(-1, dp(c, 48)).apply { topMargin = dp(c, 10) })
         }
@@ -194,7 +194,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         root.addView(label(c, "Azahar: a possible graphics experiment", 16f, true))
         root.addView(label(c, "Accurate multiplication can fix shader rendering in games that need it, but may reduce performance. Azahar recommends leaving it disabled unless required. Availability and behavior depend on the build; this is not a universal fix.", 12f))
         root.addView(label(c, "Source: https://azahar-emu.org/blog/one-year-citra-takedown/", 12f).apply {
-            Linkify.addLinks(this, Linkify.WEB_URLS); movementMethod = LinkMovementMethod.getInstance(); setLinkTextColor(0xff6cf7d0.toInt())
+            Linkify.addLinks(this, Linkify.WEB_URLS); movementMethod = LinkMovementMethod.getInstance(); setLinkTextColor(0xffffb547.toInt())
         })
         }
         if (step == 1 && draft.emulatorId == "eden") {

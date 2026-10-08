@@ -109,10 +109,10 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
     }
     private fun dp(n: Int) = (n * app.resources.displayMetrics.density).toInt()
     private fun label(parent: LinearLayout, text: String, size: Float = 13f, accent: Boolean = false) = TextView(parent.context).apply {
-        this.text = text; textSize = size; setTextColor(if (accent) 0xff6cf7d0.toInt() else 0xffd6e7ed.toInt()); setPadding(0, dp(5), 0, dp(5)); parent.addView(this)
+        this.text = text; textSize = size; setTextColor(if (accent) 0xffffb547.toInt() else 0xfff4f2ec.toInt()); setPadding(0, dp(5), 0, dp(5)); parent.addView(this)
     }
     private fun button(parent: LinearLayout, title: String, action: () -> Unit) = Button(parent.context).apply {
-        text = title; isAllCaps = false; textSize = 13f; setTextColor(0xff6cf7d0.toInt()); background = PilotGlass(dp(14).toFloat())
+        text = title; isAllCaps = false; textSize = 13f; setTextColor(0xffffb547.toInt()); background = PilotGlass(dp(14).toFloat())
         setOnClickListener { runCatching(action).onFailure { message = it.message ?: "Could not complete that action."; render() } }
         parent.addView(this, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
     }
@@ -135,7 +135,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         label(host, message)
         host.addView(EditText(host.context).apply {
             hint = "Find a title or platform"; contentDescription = "Search download library"
-            setTextColor(0xffd6e7ed.toInt()); setHintTextColor(0xffaebed0.toInt()); textSize = 14f
+            setTextColor(0xfff4f2ec.toInt()); setHintTextColor(0xffa9a69e.toInt()); textSize = 14f
             isSingleLine = true; setText(query)
             if (revealSearch) post {
                 if (revealSearch && isAttachedToWindow && !loading) {
@@ -234,7 +234,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
         if (identity.providerIds.isNotEmpty()) label(form, identity.providerIds.entries.joinToString(" · ") { "${it.key}: ${it.value}" }, 11f)
         val title = EditText(c).apply {
             hint = "Game title"; contentDescription = "Correct game title"; setText(identity.canonicalTitle)
-            setTextColor(0xffd6e7ed.toInt()); isSingleLine = true
+            setTextColor(0xfff4f2ec.toInt()); isSingleLine = true
             filters = arrayOf(android.text.InputFilter.LengthFilter(256))
         }
         form.addView(title, LinearLayout.LayoutParams(-1, dp(48)))
@@ -346,7 +346,7 @@ class DownloadPanel(context: Context, private val pick: (Boolean) -> Unit) {
             val progress = ProgressBar(host.context, null, android.R.attr.progressBarStyleHorizontal).apply {
                 max = 1000; progress = if (state.entry.sizeBytes > 0) ((state.bytes.toDouble() / state.entry.sizeBytes) * 1000).toInt().coerceIn(0, 1000) else 0
                 isIndeterminate = state.status == "verifying"
-                progressTintList = android.content.res.ColorStateList.valueOf(0xff6cf7d0.toInt())
+                progressTintList = android.content.res.ColorStateList.valueOf(0xffffb547.toInt())
             }
             card.addView(progress, LinearLayout.LayoutParams(-1, dp(5)))
             label(card, "${size(state.bytes)} / ${size(state.entry.sizeBytes)} · ${state.message}", 12f)

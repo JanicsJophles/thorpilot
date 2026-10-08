@@ -98,7 +98,7 @@ class SetupPanel(
             text = title; textSize = 14f; isAllCaps = false; gravity = Gravity.CENTER_VERTICAL or Gravity.START
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setTextColor(if (primary) 0xff1e1404.toInt() else if (selected) amber else white)
-            val fill = if (primary) amber else if (selected) 0xff211b11.toInt() else 0xff101217.toInt()
+            val fill = if (primary) amber else if (selected) 0xff1c1f27.toInt() else 0xff13151b.toInt()
             val control = this
             background = StateListDrawable().apply {
                 addState(intArrayOf(android.R.attr.state_focused), surface(control, fill, amber))

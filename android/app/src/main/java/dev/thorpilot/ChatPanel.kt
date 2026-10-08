@@ -24,9 +24,9 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     private var closed = false
     private var worker = Executors.newSingleThreadExecutor()
     private val roots = mutableListOf<WeakReference<LinearLayout>>()
-    private val ink = Color.rgb(242, 246, 252)
-    private val muted = Color.rgb(175, 193, 208)
-    private val iris = Color.rgb(108, 247, 208)
+    private val ink = Color.rgb(244, 242, 236)
+    private val muted = Color.rgb(169, 166, 158)
+    private val iris = Color.rgb(255, 181, 71)
 
     fun createView(context: Context, compact: Boolean = false): View = LinearLayout(context).apply {
         syncConnection()
@@ -47,8 +47,8 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     fun close() { closed = true; covers.close(); worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun surface(c: Context, color: Int): android.graphics.drawable.Drawable =
-        if (quick) PilotBubble(dp(c, 24).toFloat(), color == Color.rgb(29, 49, 73))
-        else GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0x304faaa7) }
+        if (quick) PilotBubble(dp(c, 24).toFloat(), color == Color.rgb(28, 31, 39))
+        else GradientDrawable().apply { setColor(color); cornerRadius = dp(c, 18).toFloat(); setStroke(dp(c, 1), 0xff2a2e38.toInt()) }
     private fun text(c: Context, value: String, size: Float = 15f, bold: Boolean = false) = TextView(c).apply {
         text = value; textSize = size; setTextColor(ink)
         if (bold) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -57,7 +57,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
     private fun action(c: Context, value: String, callback: () -> Unit) = Button(c).apply {
         text = value; isAllCaps = false; textSize = 14f; setTextColor(iris)
         minHeight = dp(c, 48); setOnClickListener { callback() }
-        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x3383decf), surface(c, Color.rgb(29, 49, 73)), null)
+        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33ffb547), surface(c, Color.rgb(28, 31, 39)), null)
         stateListAnimator = null
         setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6); bottomMargin = dp(c, 4) }
@@ -84,7 +84,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                 }.show()
         }.apply {
             textSize = 12f
-            background = android.graphics.drawable.InsetDrawable(surface(c, Color.rgb(16, 32, 46)), 0, dp(c, 7), 0, dp(c, 7))
+            background = android.graphics.drawable.InsetDrawable(surface(c, Color.rgb(19, 21, 27)), 0, dp(c, 7), 0, dp(c, 7))
             layoutParams = LinearLayout.LayoutParams(dp(c, 70), dp(c, 48))
         })
         if (!quick || messages.isNotEmpty()) root.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 12); bottomMargin = dp(c, 6) })
@@ -104,7 +104,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             val block = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
-                background = surface(c, if (message.role == "user") Color.rgb(29, 49, 73) else Color.rgb(10, 22, 34))
+                background = surface(c, if (message.role == "user") Color.rgb(28, 31, 39) else Color.rgb(11, 12, 16))
                 layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 16) }
             }
             block.addView(text(c, if (message.role == "user") "You" else "Thorpilot", 12f, true).apply { setTextColor(muted) })
@@ -119,7 +119,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
                 val art = ImageView(c).apply {
                     contentDescription = "${game.title} cover"
                     scaleType = ImageView.ScaleType.CENTER_CROP
-                    background = surface(c, Color.rgb(5, 14, 24))
+                    background = surface(c, Color.rgb(19, 21, 27))
                     setImageDrawable(PilotIcon("chat"))
                     clipToOutline = true
                     outlineProvider = object : android.view.ViewOutlineProvider() {
@@ -139,13 +139,13 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             }
             root.addView(block)
         }
-        error?.let { root.addView(text(c, it, 14f).apply { setTextColor(Color.rgb(255, 158, 164)) }) }
+        error?.let { root.addView(text(c, it, 14f).apply { setTextColor(Color.rgb(255, 142, 126)) }) }
         if (busy) root.addView(text(c, "Finding ideas and checking the catalog…", 14f).apply { setTextColor(iris) })
         val editorIdentity = conversation.identity
         val input = EditText(c).apply {
             hint = "Tell me what you like…"; contentDescription = "Message Thorpilot"
             textSize = 15f; setTextColor(ink); setHintTextColor(muted); setText(draft)
-            background = surface(c, Color.rgb(5, 14, 24))
+            background = surface(c, Color.rgb(19, 21, 27))
             setPadding(dp(c, 20), dp(c, 16), dp(c, 20), dp(c, 16))
             minLines = if (quick) 1 else 2; maxLines = 4
             imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI

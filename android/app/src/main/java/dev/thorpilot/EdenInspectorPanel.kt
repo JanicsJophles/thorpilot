@@ -76,12 +76,12 @@ class EdenInspectorPanel(context: Context, private val pick: (Boolean) -> Unit) 
         fun dp(n: Int) = (n * c.resources.displayMetrics.density).toInt()
         fun text(value: String, size: Float = 13f) {
             host.addView(TextView(c).apply {
-                text = value; textSize = size; setTextColor(0xffd6e7ed.toInt()); setPadding(0, dp(8), 0, dp(8))
+                text = value; textSize = size; setTextColor(0xfff4f2ec.toInt()); setPadding(0, dp(8), 0, dp(8))
             })
         }
         fun button(title: String, action: () -> Unit) {
             host.addView(Button(c).apply {
-                text = title; isAllCaps = false; setTextColor(0xff6cf7d0.toInt())
+                text = title; isAllCaps = false; setTextColor(0xffffb547.toInt())
                 background = PilotGlass(dp(16).toFloat()); isEnabled = !busy; setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         }
