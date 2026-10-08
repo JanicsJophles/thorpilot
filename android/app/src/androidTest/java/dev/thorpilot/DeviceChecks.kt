@@ -23,6 +23,7 @@ class DeviceChecks : Instrumentation() {
             RequestChecks.run()
             RequestHistoryChecks.run(targetContext)
             ChatChecks.runChecks(targetContext)
+            CoverImageChecks.run()
             val store = ConnectionStore(targetContext, "connection-test")
             store.clear()
             check(runCatching { store.save("http://example.com", "test-token") }.isFailure)

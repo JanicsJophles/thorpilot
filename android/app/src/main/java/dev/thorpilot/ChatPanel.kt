@@ -15,6 +15,7 @@ import java.util.concurrent.Executors
 
 /** The same conversation can render on the workspace or a secondary display. */
 class ChatPanel(private val activity: Activity, private val store: ConnectionStore, private val quick: Boolean = false, private val connect: () -> Unit) {
+    private val covers = CoverImages()
     private val conversation = ChatConversation(store, ChatHistory(activity, if (quick) "copilot-chat-history" else "chat-history"))
     private val messages get() = conversation.messages
     private val draft get() = conversation.draft
@@ -43,7 +44,7 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
         return true
     }
     fun onConnectionChanged() { if (syncConnection()) refresh() }
-    fun close() { closed = true; worker.shutdownNow(); roots.clear() }
+    fun close() { closed = true; covers.close(); worker.shutdownNow(); roots.clear() }
     private fun dp(c: Context, n: Int) = (n * c.resources.displayMetrics.density).toInt()
     private fun surface(c: Context, color: Int): android.graphics.drawable.Drawable =
         if (quick) PilotBubble(dp(c, 24).toFloat(), color == Color.rgb(29, 49, 73))
@@ -109,9 +110,32 @@ class ChatPanel(private val activity: Activity, private val store: ConnectionSto
             block.addView(text(c, if (message.role == "user") "You" else "Thorpilot", 12f, true).apply { setTextColor(muted) })
             block.addView(text(c, message.content))
             message.games.forEach { game ->
-                block.addView(text(c, game.title, 17f, true))
-                block.addView(text(c, "${game.platformName}${if (game.owned) " · In your library" else ""}", 12f).apply { setTextColor(iris) })
-                block.addView(text(c, game.reason, 14f))
+                val card = LinearLayout(c).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.TOP
+                    setPadding(dp(c, 12), dp(c, 12), dp(c, 12), dp(c, 12))
+                    background = PilotBubble(dp(c, 22).toFloat())
+                }
+                val art = ImageView(c).apply {
+                    contentDescription = "${game.title} cover"
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    background = surface(c, Color.rgb(5, 14, 24))
+                    setImageDrawable(PilotIcon("chat"))
+                    clipToOutline = true
+                    outlineProvider = object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(view: View, outline: android.graphics.Outline) {
+                            outline.setRoundRect(0, 0, view.width, view.height, dp(c, 12).toFloat())
+                        }
+                    }
+                }
+                card.addView(art, LinearLayout.LayoutParams(dp(c, 76), dp(c, 104)).apply { marginEnd = dp(c, 14) })
+                covers.bind(art, game.cover)
+                val detail = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL }
+                detail.addView(text(c, game.title, 17f, true))
+                detail.addView(text(c, "${game.platformName}${if (game.owned) " · In your library" else ""}", 12f).apply { setTextColor(iris) })
+                detail.addView(text(c, game.reason, 14f))
+                card.addView(detail, LinearLayout.LayoutParams(0, -2, 1f))
+                block.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 10) })
             }
             root.addView(block)
         }
