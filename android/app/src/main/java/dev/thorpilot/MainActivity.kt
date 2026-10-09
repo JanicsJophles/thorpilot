@@ -40,6 +40,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private val navigation = mutableMapOf<String, Button>()
     private var companion: Presentation? = null
     private var page = "home"
+    private val positions = PagePositions()
+    private var renderedPage: String? = null
+    private var restoreEpoch = 0
+    private var positionRestorePending = false
     private lateinit var requests: RequestPanel
     private var lowerEnabled = true
     private var companionSuppressed = false
@@ -62,16 +66,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             "downloads", "device-library", "library-sync", "setup" -> "device"
             else -> "home"
         }
-        val previous = page
+        positions.focus(parent, page)
         go(parent)
-        fun find(view: View): View? {
-            if (view.tag == previous && view.isFocusable) return view
-            if (view is android.view.ViewGroup) {
-                for (index in 0 until view.childCount) find(view.getChildAt(index))?.let { return it }
-            }
-            return null
-        }
-        find(body)?.requestFocus()
     }
 
     override fun onCreate(state: Bundle?) {
@@ -96,6 +92,13 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             getSharedPreferences("device-library", MODE_PRIVATE).all.isNotEmpty()
         page = state?.getString("page") ?: ThorpilotWidget.destination(intent) ?:
             if (!SetupPanel.hasSeenSetup(this) && !existingSetup) "setup" else "home"
+        state?.getBundle("page-positions")?.let { saved ->
+            PagePositions.ROUTES.forEach { route ->
+                saved.getBundle(route)?.let { position ->
+                    positions.remember(route, position.getInt("scroll"), position.getString("focus"))
+                }
+            }
+        }
         lowerEnabled = getPreferences(MODE_PRIVATE).getBoolean("lower", true)
         render()
     }
@@ -203,6 +206,16 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         }
     }
     override fun onSaveInstanceState(out: Bundle) {
+        rememberPosition()
+        out.putBundle("page-positions", Bundle().apply {
+            PagePositions.ROUTES.forEach { route ->
+                val position = positions.get(route)
+                putBundle(route, Bundle().apply {
+                    putInt("scroll", position.scrollY)
+                    putString("focus", position.focusRoute)
+                })
+            }
+        })
         out.putBundle("game-care", gameCare.saveState())
         out.putString("page", page)
         out.putBoolean("companion-suppressed", companionSuppressed)
@@ -306,15 +319,38 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     }
     private fun go(destination: String) {
         if (page == destination) return
+        rememberPosition()
         PilotMotion.reset(body)
         page = destination
         showCompanion()
         render()
-        pageScroll.scrollTo(0, 0)
         PilotMotion.enter(body)
         showCompanion()
     }
+    private fun rememberPosition() {
+        if (!::body.isInitialized || positionRestorePending || renderedPage != page) return
+        val route = body.findFocus()?.tag as? String
+        // Selecting a tab must not erase the originating action's controller focus.
+        positions.remember(page, pageScroll.scrollY, route ?: positions.get(page).focusRoute)
+    }
+
+    private fun restorePosition() {
+        val epoch = ++restoreEpoch
+        val route = page
+        positionRestorePending = true
+        val position = positions.get(route)
+        pageScroll.post {
+            if (epoch != restoreEpoch || page != route || isDestroyed) return@post
+            if (!body.isInTouchMode) position.focusRoute?.let {
+                body.findViewWithTag<View>(it)?.takeIf { control -> control.isEnabled && control.isFocusable }?.requestFocus()
+            }
+            pageScroll.scrollTo(0, position.scrollY)
+            positionRestorePending = false
+        }
+    }
+
     private fun render() {
+        rememberPosition()
         if (!::body.isInitialized) buildShell()
         navigation.forEach { (id, item) ->
             item.isSelected = page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")
@@ -336,8 +372,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                     addWeighted(actions, utilityButton(this, "Return to ${playAppName(gameSession.lastPackage)}") { launchPlayApp(gameSession.lastPackage) })
                 }
                 body.addView(actions)
-                body.addView(utilityButton(this, "Configuration snapshots") { go("snapshots") })
-                body.addView(utilityButton(this, "Inspect Eden settings") { go("eden-inspector") })
+                body.addView(utilityButton(this, "Configuration snapshots") { go("snapshots") }.apply { tag = "snapshots" })
+                body.addView(utilityButton(this, "Inspect Eden settings") { go("eden-inspector") }.apply { tag = "eden-inspector" })
                 body.addView(gameCare.createView(this))
             }
             "eden-inspector" -> {
@@ -367,6 +403,8 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             else -> homePage()
         }
         PilotTypography.applyTo(body)
+        renderedPage = page
+        restorePosition()
     }
     private fun buildShell() {
         val root = column(this).apply { setBackgroundColor(Color.BLACK) }

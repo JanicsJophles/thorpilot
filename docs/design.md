@@ -33,3 +33,9 @@ Cocoon is a visual/interaction reference, not copied source. Its public reposito
 B/Back returns nested tools to their parent (Eden inspector and snapshots → Game care; storage tools → My Thor), then returns sections to Home. On Home, Back retains Android’s normal exit behavior. The lower presentation routes back through the same navigation; B dismisses the compact copilot. Returning to Home/My Thor restores focus to the action that opened the child when available.
 
 Settings includes persisted Interface animations and Navigation haptics switches, shared across both displays and the compact copilot. System-disabled motion/haptics remain authoritative. Disabling motion affects page transitions, focus reveal, press pulses and onboarding transitions; the visible focus outline remains.
+
+## Section position restoration
+
+The native shell remembers outer scroll offsets independently for each section. Tagged navigation actions can regain controller focus on return; touch navigation does not force focus or open a keyboard. Positions are saved with Android activity state and only known route identifiers are accepted. Pending restore callbacks are invalidated when another render wins, so rapid navigation does not apply a previous screen's position.
+
+This restores the shell viewport, not an item anchor inside asynchronously replaced game/request lists. It does not save text-field contents or credentials. The navigation-position change has local unit/build coverage; its physical Thor walkthrough remains pending while the device is disconnected.
