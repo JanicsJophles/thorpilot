@@ -49,7 +49,22 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
     private var companionSuppressed = false
     private var active = false
 
+    private fun shoulder(event: android.view.KeyEvent, focused: View?): Boolean {
+        if (focused is EditText || event.keyCode !in setOf(android.view.KeyEvent.KEYCODE_BUTTON_L1, android.view.KeyEvent.KEYCODE_BUTTON_R1)) return false
+        if (event.action == android.view.KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            go(HandheldSections.adjacent(page, if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_L1) -1 else 1))
+            navigation[HandheldSections.section(page)]?.requestFocus()
+        }
+        return true
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) PilotWindow.apply(window)
+    }
+
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (shoulder(event, currentFocus)) return true
         if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B) {
             if (event.action == android.view.KeyEvent.ACTION_UP && !event.isCanceled) onBackPressed()
             return true
@@ -415,13 +430,14 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             insets
         }
         val header = horizontal(this)
-        header.addView(label(this, "Thorpilot", 20f, true).apply { setPadding(0, 0, dp(context, 26), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
+        header.addView(label(this, "Thorpilot", 16f, true).apply { setPadding(0, 0, dp(context, 16), 0); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(-2, dp(this, 48)))
         val nav = horizontal(this).apply {
             background = PilotSurface(dp(this@MainActivity, 23).toFloat())
             setPadding(dp(context, 3), 0, dp(context, 3), 0)
         }
-        listOf("home" to "Home", "chat" to "Ask", "device" to "My Thor", "requests" to "Requests", "settings" to "Settings").forEach { (id, name) ->
+        HandheldSections.entries.forEach { (id, name) ->
             val item = button(this, name) { go(id) }.apply {
+                textSize = 13f
                 isSelected = page == id
                 background = android.graphics.drawable.RippleDrawable(
                     android.content.res.ColorStateList.valueOf(0x33FFB547), if (page == id || (page in setOf("care", "snapshots", "eden-inspector", "library-sync", "device-library", "downloads", "setup") && id == "device")) android.graphics.drawable.InsetDrawable(PilotSurface(dp(this@MainActivity, 16).toFloat(), true), dp(this@MainActivity, 2), dp(this@MainActivity, 4), dp(this@MainActivity, 2), dp(this@MainActivity, 4)) else shape(Color.TRANSPARENT, 16f), null)
@@ -443,7 +459,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         PilotTypography.applyTo(root)
+        root.addView(label(this, "L / R  Sections     A  Select     B  Back", 11f).apply {
+            setTextColor(muted); gravity = Gravity.CENTER; setPadding(0, dp(context, 6), 0, 0)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        })
         setContentView(root)
+        PilotWindow.apply(window)
         PilotFocus.install(root)
     }
     private fun toggleCompanion() {
@@ -627,6 +648,12 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
                 layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(this@MainActivity, 8) }
             })
         }
+        preference("Fullscreen handheld mode", PilotPreferences.fullscreen(this)) {
+            PilotPreferences.setFullscreen(this, it)
+            PilotWindow.apply(window)
+            companion?.window?.let(PilotWindow::apply)
+        }
+        body.addView(label(this, "Swipe from an edge to reveal Android’s system controls.", 12f).apply { setTextColor(muted) })
         preference("Interface animations", PilotPreferences.motion(this)) { PilotPreferences.setMotion(this, it) }
         preference("Navigation haptics", PilotPreferences.haptics(this)) { PilotPreferences.setHaptics(this, it) }
         body.addView(label(this, "System vibration and reduced-motion settings still apply. A selects; B returns to the parent screen.", 12f).apply { setTextColor(muted) })
@@ -672,14 +699,19 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (!active || !lowerEnabled || companionSuppressed || gameSession.yielded || target == null) {
             companion?.dismiss(); companion = null; return
         }
-        val mode = when (page) { "chat" -> "chat"; "setup" -> "setup"; else -> "dock" }
+        val mode = when (page) { "chat" -> "chat"; "setup" -> "setup"; else -> "dock:${HandheldSections.section(page)}" }
         if (companion?.display?.displayId == target.displayId && companion?.isShowing == true && companionPage == mode) return
         val panel = if (companion?.display?.displayId == target.displayId && companion?.isShowing == true) companion!! else {
             companion?.dismiss()
             object : Presentation(this, target) {
                 @Deprecated("Routes companion back to the workspace")
                 override fun onBackPressed() { this@MainActivity.onBackPressed() }
+                override fun onWindowFocusChanged(hasFocus: Boolean) {
+                    super.onWindowFocusChanged(hasFocus)
+                    if (hasFocus) window?.let(PilotWindow::apply)
+                }
                 override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+                    if (shoulder(event, currentFocus)) return true
                     if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B) {
                         if (event.action == android.view.KeyEvent.ACTION_UP && !event.isCanceled) this@MainActivity.onBackPressed()
                         return true
@@ -696,7 +728,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         if (page != "setup") {
         val header = horizontal(c)
         addWeighted(header, label(c, "Thorpilot", 19f, true))
-        header.addView(label(c, "Companion", 12f).apply { setTextColor(iris) })
+        header.addView(label(c, HandheldSections.label(page), 12f).apply { setTextColor(iris) })
         content.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(c, 12) })
         }
         if (page == "setup") {
@@ -715,6 +747,10 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
             getPreferences(MODE_PRIVATE).edit().putBoolean("lower", false).apply()
             showCompanion(); render()
         }.apply { layoutParams = LinearLayout.LayoutParams(dp(c, 190), dp(c, 48)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(c, 6) } })
+        content.addView(label(c, "L / R  Sections     A  Select     B  Back", 11f).apply {
+            gravity = Gravity.CENTER; setTextColor(muted)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        })
         val scroll = ScrollView(c).apply { setBackgroundColor(Color.TRANSPARENT); isFillViewport = true; addView(content) }
         PilotTypography.applyTo(scroll)
         panel.setContentView(scroll)
@@ -723,6 +759,7 @@ class MainActivity : Activity(), DisplayManager.DisplayListener {
         try {
             if (!panel.isShowing) panel.show()
             panel.window?.setLayout(-1, -1)
+            panel.window?.let(PilotWindow::apply)
             companion = panel
             companionPage = mode
         } catch (_: WindowManager.InvalidDisplayException) { companion = null }

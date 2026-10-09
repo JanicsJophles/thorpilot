@@ -98,6 +98,19 @@ class DeviceChecks : Instrumentation() {
                 backButton()
                 check(views(activity.window.decorView).filterIsInstance<PilotActionRow>().isNotEmpty()) { "B did not return to Home" }
                 check(!activity.isFinishing) { "B exited instead of navigating back" }
+                fun shoulderKey(code: Int) {
+                    activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, code))
+                    activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, code))
+                }
+                shoulderKey(android.view.KeyEvent.KEYCODE_BUTTON_L1)
+                check(contains("Save connection")) { "Left shoulder did not wrap Home to Settings" }
+                val editor = views(activity.window.decorView).filterIsInstance<android.widget.EditText>().first()
+                editor.requestFocusFromTouch()
+                shoulderKey(android.view.KeyEvent.KEYCODE_BUTTON_R1)
+                check(contains("Save connection")) { "Shoulder navigation interrupted text editing" }
+                views(activity.window.decorView).filterIsInstance<Button>().first { it.text == "Settings" }.requestFocusFromTouch()
+                shoulderKey(android.view.KeyEvent.KEYCODE_BUTTON_R1)
+                check(views(activity.window.decorView).filterIsInstance<PilotActionRow>().isNotEmpty()) { "Right shoulder did not wrap Settings to Home" }
                 val motionBefore = PilotPreferences.motion(activity)
                 val hapticsBefore = PilotPreferences.haptics(activity)
                 try {

@@ -39,3 +39,11 @@ Settings includes persisted Interface animations and Navigation haptics switches
 The native shell remembers outer scroll offsets independently for each section. Tagged navigation actions can regain controller focus on return; touch navigation does not force focus or open a keyboard. Positions are saved with Android activity state and only known route identifiers are accepted. Pending restore callbacks are invalidated when another render wins, so rapid navigation does not apply a previous screen's position.
 
 This restores the shell viewport, not an item anchor inside asynchronously replaced game/request lists. It does not save text-field contents or credentials. The navigation-position change has local unit/build coverage; its physical Thor walkthrough remains pending while the device is disconnected.
+
+## Handheld shell (draft, hardware verification pending)
+
+The full companion workspace and its owned lower presentation use immersive mode by default. Swiping from an edge reveals Android system navigation; Settings can disable fullscreen. The compact summon activity and emulator windows are not changed.
+
+L1/R1 switch between the same sections as the touch tabs, including wrapping at either end. Nested tools map to My Thor. Held repeats do not repeatedly change sections, and focused text editors keep shoulder input. Both screens display A/B/shoulder hints, and the lower screen labels the active section. The top header is smaller while preserving touch target height.
+
+These changes are a first handheld-shell pass, not an OS replacement or completion of the screen redesign. Local JVM/build checks cover the section policy; instrumentation adds shoulder wrapping and text-editor protection. Physical fullscreen, controller and dual-display walkthroughs require a connected Thor before this draft is promoted.
