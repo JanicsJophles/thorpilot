@@ -21,9 +21,12 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
     private var message = ""
     private var step = 0
     private var detailsOpen = false
+    private var journalOpen = false
+    private var guidanceOpen = false
     /** Bounded activity state, including unsaved rollback notes, without writing a journal entry. */
     fun saveState(): Bundle = Bundle().apply {
         putInt("step", step.coerceIn(0, 2))
+        putBoolean("details-open", detailsOpen); putBoolean("journal-open", journalOpen); putBoolean("guidance-open", guidanceOpen)
         putString("id", draft.id.take(64)); putString("game", draft.game.take(120))
         putString("symptom", draft.symptom); putString("scene", draft.scene.take(600))
         putString("original", draft.original.take(240)); putString("trial", draft.trial.take(240))
@@ -52,6 +55,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
             ) to state.getInt("step", 0).coerceIn(0, 2)
         }.getOrNull() ?: return
         draft = restored.first; step = restored.second; message = ""
+        detailsOpen = state.getBoolean("details-open"); journalOpen = state.getBoolean("journal-open"); guidanceOpen = state.getBoolean("guidance-open")
     }
     private fun fresh(id: String = "azahar") = GameCareEntry(device = Build.MODEL, emulatorId = id, emulator = emulatorVersion(id))
     private fun emulatorVersion(id: String): String {
@@ -80,9 +84,8 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
         root.removeAllViews()
         if (!compact) {
             root.addView(label(c, "Game care", 24f, true))
-            root.addView(label(c, "One change. The same scene. A clearer answer.", 13f))
         }
-        root.addView(label(c, "Local notes · Record a change and compare the same scene. Settings stay manual.", 12f))
+        root.addView(label(c, "Step ${step + 1} of 3 · ${listOf("Record the problem", "Try one change", "Compare the result")[step]}", 12f))
         val card = LinearLayout(c).apply {
             orientation = LinearLayout.VERTICAL; background = if (compact) PilotSurface(dp(c, 24).toFloat()) else PilotSurface(dp(c, 20).toFloat())
             setPadding(dp(c, 18), dp(c, 12), dp(c, 18), dp(c, 16))
@@ -150,7 +153,7 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
                 row.addView(slot, LinearLayout.LayoutParams(0, -2, 1f))
                 button(slot, title) {
                     fun reset() { draft = fresh(id); detailsOpen = false; message = ""; showStart(root) }
-                    if (draft.game.isBlank() && draft.scene.isBlank() && draft.original.isBlank() && draft.before.isBlank()) reset()
+                    if (draft.game.isBlank() && draft.scene.isBlank() && draft.original.isBlank() && draft.before.isBlank() && draft.trial.isBlank() && draft.after.isBlank()) reset()
                     else android.app.AlertDialog.Builder(c).setTitle("Start a new note?")
                         .setMessage("This replaces the unfinished draft. Saved journal notes stay available below.")
                         .setNegativeButton("Keep draft", null).setPositiveButton("Start new") { _, _ -> reset() }.show()
@@ -163,10 +166,10 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
                 choice("What needs attention?", GameCareStore.symptoms, draft.symptom) { draft = draft.copy(symptom = it) }
                 field("Scene to repeat", draft.scene, 600) { draft = draft.copy(scene = it) }
                 field("Before: what you observed", draft.before, 600) { draft = draft.copy(before = it) }
-                if (compact) button(card, if (detailsOpen) "Hide build details" else "Build and driver details") {
+                button(card, if (detailsOpen) "Hide build details" else "Build and driver details") {
                     detailsOpen = !detailsOpen; render(root)
                 }
-                if (!compact || detailsOpen) {
+                if (detailsOpen) {
                     field("Game revision (if known)", draft.gameRevision, 120) { draft = draft.copy(gameRevision = it) }
                     field("Emulator build (recorded)", draft.emulator, 120) { draft = draft.copy(emulator = it) }
                     field("Graphics driver / backend (if known)", draft.driver, 160) { draft = draft.copy(driver = it) }
@@ -184,20 +187,35 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
                 card.addView(label(c, "If worse, restore your original setting manually: ${draft.original.ifBlank { "not recorded yet" }}. This journal cannot perform rollback.", 12f))
             }
         }
+        val progression = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }
+        card.addView(progression)
+        fun stepControl(title: String, destination: Int) {
+            val slot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL }
+            progression.addView(slot, LinearLayout.LayoutParams(0, -2, 1f))
+            button(slot, title) {
+                (c.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(root.windowToken, 0)
+                step = destination; message = ""; showStart(root)
+            }
+        }
+        if (step > 0) stepControl("Previous", step - 1)
+        if (step < 2) stepControl(if (step == 0) "Next: Trial" else "Next: Result", step + 1)
         button(card, "Save local note") {
             runCatching { store.save(draft) }.onSuccess { draft = it; message = "Saved locally. No emulator settings changed." }
                 .onFailure { message = it.message ?: "Could not save note." }
             render(root)
         }
         if (message.isNotBlank()) card.addView(label(c, message, 13f))
-        if (step == 1 && draft.emulatorId == "azahar") {
+        if (step == 1) button(root, if (guidanceOpen) "Hide experiment guidance" else "Experiment guidance") {
+            guidanceOpen = !guidanceOpen; render(root)
+        }
+        if (step == 1 && guidanceOpen && draft.emulatorId == "azahar") {
         root.addView(label(c, "Azahar: a possible graphics experiment", 16f, true))
         root.addView(label(c, "Accurate multiplication can fix shader rendering in games that need it, but may reduce performance. Azahar recommends leaving it disabled unless required. Availability and behavior depend on the build; this is not a universal fix.", 12f))
         root.addView(label(c, "Source: https://azahar-emu.org/blog/one-year-citra-takedown/", 12f).apply {
             Linkify.addLinks(this, Linkify.WEB_URLS); movementMethod = LinkMovementMethod.getInstance(); setLinkTextColor(0xffffb547.toInt())
         })
         }
-        if (step == 1 && draft.emulatorId == "eden") {
+        if (step == 1 && guidanceOpen && draft.emulatorId == "eden") {
             root.addView(label(c, "Eden: keep the experiment specific", 16f, true))
             root.addView(label(c, "Record the actual GPU mode and whether it inherits global settings. Use the game's own settings screen for a per-game trial. Driver and resolution changes are separate experiments. A successful scene does not verify the whole game. Eden configuration backup and automatic rollback are not available here.", 12f))
         }
@@ -205,12 +223,31 @@ class GameCarePanel(context: Context, private val store: GameCareStore = GameCar
             draft = draft.newTrial(Build.MODEL, emulatorVersion(draft.emulatorId))
             step = 0; message = "New draft. Record the current driver, revision, scope and original setting before testing."; showStart(root)
         }
-        root.addView(label(c, "Your experiments", 18f, true))
-        if (!compact) button(root, "New experiment") { draft = fresh(); step = 0; message = ""; showStart(root) }
-        if (!compact) button(root, "New Eden experiment") { draft = fresh("eden"); step = 0; message = ""; showStart(root) }
+        fun startNew(id: String) {
+            fun reset() { draft = fresh(id); step = 0; detailsOpen = false; message = ""; showStart(root) }
+            if (draft.game.isBlank() && draft.scene.isBlank() && draft.original.isBlank() && draft.before.isBlank() && draft.trial.isBlank() && draft.after.isBlank()) reset()
+            else android.app.AlertDialog.Builder(c).setTitle("Start a new experiment?")
+                .setMessage("This replaces the current draft. Saved journal notes stay available.")
+                .setNegativeButton("Keep draft", null).setPositiveButton("Start new") { _, _ -> reset() }.show()
+        }
+        if (!compact) {
+            val newActions = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }
+            root.addView(newActions)
+            listOf("azahar" to "New experiment", "eden" to "New Eden experiment").forEach { (id, title) ->
+                val slot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL }
+                newActions.addView(slot, LinearLayout.LayoutParams(0, -2, 1f))
+                button(slot, title) { startNew(id) }
+            }
+        }
         val entries = store.entries()
+        button(root, if (journalOpen) "Hide saved experiments" else "Saved experiments (${entries.size})") {
+            journalOpen = !journalOpen; render(root)
+        }
+        if (journalOpen) {
         if (entries.isEmpty()) root.addView(label(c, "Your saved notes will appear here. Up to 30 most recently saved experiments are kept.", 12f))
         else root.addView(label(c, "${entries.size} of 30 notes · Open a note to continue it. Oldest notes are replaced when full.", 12f))
         entries.forEach { entry -> button(root, "${entry.game} · ${entry.result}") { draft = entry; step = 0; message = "Editing saved note"; showStart(root) } }
+        }
+        PilotTypography.applyTo(root)
     }
 }
