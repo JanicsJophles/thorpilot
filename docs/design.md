@@ -47,3 +47,9 @@ The full companion workspace and its owned lower presentation use immersive mode
 L1/R1 switch between the same sections as the touch tabs, including wrapping at either end. Nested tools map to My Thor. Held repeats do not repeatedly change sections, and focused text editors keep shoulder input. Both screens display A/B/shoulder hints, and the lower screen labels the active section. The top header is smaller while preserving touch target height.
 
 These changes are a first handheld-shell pass, not an OS replacement or completion of the screen redesign. Local JVM/build checks cover the section policy; instrumentation adds shoulder wrapping and text-editor protection. Physical fullscreen, controller and dual-display walkthroughs require a connected Thor before this draft is promoted.
+
+## Guided Game care (draft)
+
+Game care exposes one experiment step with Previous/Next controls. Build/driver metadata, emulator reference guidance and the saved journal expand on demand instead of extending every screen. Expanded sections survive activity-state restoration. All fields remain editable; saving a journal note still does not apply emulator settings. Starting a new full-screen or compact experiment confirms replacement when a draft contains observations or trial values.
+
+This layout has local compilation/lint coverage and updated instrumentation scenarios, but physical Thor validation remains pending while disconnected.
